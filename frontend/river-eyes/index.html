@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>River Eyes — Global Hydrological Intelligence & Dam Siting Platform</title>
   <meta name="description" content="Global river monitoring, high-precision geospatial vector tracking, Gemma 4-powered Aqua assistant, and geotechnical energy-to-dam cascade siting." />
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌊</text></svg>" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' fill='%230284c7'/></svg>" />
 
   <!-- Google Fonts: Inter, Outfit, JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -201,23 +201,18 @@
 
     /* Left Navigation Sidebar — Glassmorphic Control Hub (Forest Eyes style) */
     .sidebar-nav {
-      width: 320px;
-      background: rgba(10, 22, 40, 0.88);
-      backdrop-filter: blur(24px) saturate(180%);
-      border-right: 1px solid rgba(255, 255, 255, 0.08);
+      width: var(--sidebar-width, 360px);
+      background: var(--panel-bg, #0b111c);
+      backdrop-filter: none;
+      border-right: 1px solid var(--line, rgba(255, 255, 255, 0.08));
       display: flex;
       flex-direction: column;
       flex-shrink: 0;
       z-index: 900;
-      overflow-y: auto;
-      overflow-x: hidden;
-      scrollbar-width: thin;
-      scrollbar-color: rgba(56, 189, 248, 0.25) transparent;
-      box-shadow: 4px 0 32px rgba(0, 0, 0, 0.4);
+      overflow: hidden !important;
+      scrollbar-width: none;
     }
-    .sidebar-nav::-webkit-scrollbar { width: 4px; }
-    .sidebar-nav::-webkit-scrollbar-track { background: transparent; }
-    .sidebar-nav::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.2); border-radius: 4px; }
+    .sidebar-nav::-webkit-scrollbar { display: none; width: 0; height: 0; }
 
     .panel-section {
       padding: 16px 16px;
@@ -618,17 +613,29 @@
     /* Aqua Drawer */
     #aqua-drawer {
       position: fixed;
-      top: 0;
+      top: 60px;
       right: 0;
       bottom: 0;
       width: 440px;
-      background: rgba(12, 17, 28, 0.96);
-      backdrop-filter: blur(18px);
-      border-left: 1px solid var(--border-medium);
-      box-shadow: -10px 0 35px rgba(0, 0, 0, 0.7);
-      z-index: 2000;
-      display: none;
+      max-width: calc(100vw - 32px);
+      background: var(--panel-bg);
+      backdrop-filter: none;
+      border-left: 1px solid var(--line);
+      box-shadow: -12px 0 36px rgba(0, 0, 0, 0.55);
+      z-index: 999;
+      display: flex;
       flex-direction: column;
+      transform: translateX(100%);
+      opacity: 0;
+      pointer-events: none;
+      visibility: hidden;
+      transition: transform 0.3s var(--ease-out), opacity 0.25s var(--ease-out), visibility 0.3s;
+    }
+    #aqua-drawer.open {
+      transform: translateX(0);
+      opacity: 1;
+      pointer-events: auto;
+      visibility: visible;
     }
     .drawer-header {
       padding: 14px 18px;
@@ -737,6 +744,911 @@
     .rank-choice label { flex: 1; display: flex; align-items: center; gap: 6px; padding: 7px 8px; border: 1px solid var(--border-subtle); border-radius: 6px; font-size: 11px; color: var(--text-muted); cursor: pointer; }
     .rank-choice label:has(input:checked) { border-color: rgba(56,189,248,.6); color: #fff; background: rgba(56,189,248,.08); }
     .rank-choice input { accent-color: #38bdf8; margin: 0; }
+
+    /* =========================================================================
+       CLEAN-UP PASS: readable type, color-coded tabs, subtle smooth transitions
+       ========================================================================= */
+    :root {
+      --sidebar-width: 360px;
+      --text-muted: #cbd5e1;
+      --text-dim: #94a3b8;
+      --accent: #38bdf8;
+      --panel-bg: #0b111c;
+      --line: rgba(255, 255, 255, 0.08);
+      --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+      --tab-planner: #38bdf8;
+      --tab-scan: #2dd4bf;
+      --tab-stats: #fbbf24;
+      --tab-layers: #a78bfa;
+    }
+    body { font-size: 15px; -webkit-font-smoothing: antialiased; }
+
+    header { background: var(--panel-bg); backdrop-filter: none; border-bottom: 1px solid var(--line); }
+    .brand-logo-badge { width: 36px; height: 36px; border-radius: 9px; background: #0f2236; border: 1px solid rgba(56, 189, 248, 0.35); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1); transition: border-color 0.22s var(--ease-out), transform 0.22s var(--ease-out); }
+    .brand-section:hover .brand-logo-badge { border-color: rgba(56, 189, 248, 0.65); transform: translateY(-1px); }
+    .brand-title { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; background: none; -webkit-text-fill-color: #f8fafc; color: #f8fafc; }
+
+    /* Refined, understated buttons with subtle depth and smooth motion */
+    .btn {
+      font-size: 14.5px;
+      font-weight: 600;
+      padding: 10px 18px;
+      border-radius: 9px;
+      background: linear-gradient(180deg, #162235 0%, #101929 100%);
+      border: 1px solid #26354d;
+      color: #e2e8f0;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 1px 3px rgba(0, 0, 0, 0.25);
+      transition: background 0.22s var(--ease-out), border-color 0.22s var(--ease-out), color 0.22s var(--ease-out), transform 0.22s var(--ease-out), box-shadow 0.22s var(--ease-out);
+    }
+    .btn:hover {
+      background: linear-gradient(180deg, #1c2b42 0%, #142033 100%);
+      border-color: #364968;
+      color: #ffffff;
+      transform: translateY(-1px);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 4px 10px rgba(0, 0, 0, 0.28);
+    }
+    .btn:active { transform: translateY(0); }
+
+    .btn-primary, .btn-run-analysis {
+      background: linear-gradient(180deg, #0ea5e9 0%, #0284c7 100%);
+      border: 1px solid #38bdf8;
+      color: #ffffff;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 2px 8px rgba(2, 132, 199, 0.28);
+    }
+    .btn-primary:hover, .btn-run-analysis:hover {
+      background: linear-gradient(180deg, #38bdf8 0%, #0ea5e9 100%);
+      border-color: #7dd3fc;
+      transform: translateY(-1px);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 5px 14px rgba(2, 132, 199, 0.36);
+    }
+    .btn-primary:active, .btn-run-analysis:active { transform: translateY(0); }
+
+    .btn-scan-teal {
+      background: linear-gradient(180deg, #14b8a6 0%, #0d9488 100%);
+      border: 1px solid #2dd4bf;
+      color: #ffffff;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 2px 8px rgba(13, 148, 136, 0.28);
+    }
+    .btn-scan-teal:hover {
+      background: linear-gradient(180deg, #2dd4bf 0%, #14b8a6 100%);
+      border-color: #5eead4;
+      transform: translateY(-1px);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 5px 14px rgba(13, 148, 136, 0.36);
+    }
+
+    .btn-aqua {
+      background: linear-gradient(180deg, rgba(56, 189, 248, 0.14) 0%, rgba(56, 189, 248, 0.06) 100%);
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      color: #e0f2fe;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    }
+    .btn-aqua:hover {
+      background: linear-gradient(180deg, rgba(56, 189, 248, 0.22) 0%, rgba(56, 189, 248, 0.12) 100%);
+      border-color: rgba(56, 189, 248, 0.7);
+      transform: translateY(-1px);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 4px 10px rgba(0, 0, 0, 0.25);
+    }
+    .btn-aqua.active {
+      background: linear-gradient(180deg, rgba(56, 189, 248, 0.3) 0%, rgba(56, 189, 248, 0.18) 100%);
+      border-color: #38bdf8;
+      color: #ffffff;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 0 12px rgba(56, 189, 248, 0.35);
+    }
+
+    /* Sidebar Layout — 100% GPU-Composited (Zero Layout Reflow / Zero Canvas Redraw) */
+    :root {
+      --sidebar-rail-width: 68px;
+      --sidebar-transition: 0.36s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .app-container {
+      padding-left: var(--sidebar-rail-width, 68px);
+    }
+    .app-container .leaflet-top.leaflet-left {
+      transform: translate3d(calc(var(--sidebar-width, 360px) - var(--sidebar-rail-width, 68px)), 0, 0);
+      transition: transform var(--sidebar-transition);
+      will-change: transform;
+    }
+    .app-container.sidebar-collapsed .leaflet-top.leaflet-left {
+      transform: translate3d(0, 0, 0);
+    }
+
+    .sidebar-nav {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: var(--sidebar-width, 360px);
+      background: transparent !important;
+      backdrop-filter: none;
+      box-shadow: none !important;
+      border-right: none !important;
+      overflow: visible !important;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      scrollbar-width: none;
+      z-index: 900;
+    }
+
+    /* GPU-composited drawer shell: translates -292px on collapse without changing width or reflowing the map */
+    .sidebar-clip-shell {
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: var(--sidebar-width, 360px);
+      height: 100%;
+      background: var(--panel-bg);
+      border-right: 1px solid var(--line);
+      box-shadow: 8px 0 28px rgba(0, 0, 0, 0.38);
+      overflow: hidden !important;
+      display: flex;
+      flex-direction: column;
+      pointer-events: auto;
+      transform: translate3d(0, 0, 0);
+      will-change: transform;
+      backface-visibility: hidden;
+      contain: layout paint style;
+      transition: transform var(--sidebar-transition);
+    }
+    .sidebar-nav.collapsed .sidebar-clip-shell {
+      pointer-events: none;
+      transform: translate3d(calc(var(--sidebar-rail-width, 68px) - var(--sidebar-width, 360px)), 0, 0);
+    }
+
+    .sidebar-expanded-view {
+      width: var(--sidebar-width, 360px);
+      min-width: var(--sidebar-width, 360px);
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+      will-change: opacity, transform;
+      transition: opacity 0.22s var(--ease-out) 0.06s, transform 0.32s var(--ease-out) 0.04s, visibility 0s linear 0s;
+    }
+    .sidebar-nav.collapsed .sidebar-expanded-view {
+      opacity: 0;
+      transform: translate3d(14px, 0, 0);
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.14s ease-out, transform 0.22s var(--ease-out), visibility 0s linear 0.15s;
+    }
+
+    /* Header Collapse Button (next to River select) */
+    .sidebar-collapse-btn {
+      width: 38px;
+      height: 38px;
+      padding: 0;
+      border-radius: 9px;
+      background: linear-gradient(180deg, #162235 0%, #101929 100%);
+      border: 1px solid #26354d;
+      color: #94a3b8;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      cursor: pointer;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      transition: background 0.2s var(--ease-out), border-color 0.2s var(--ease-out), color 0.2s var(--ease-out), transform 0.2s var(--ease-out);
+    }
+    .sidebar-collapse-btn:hover {
+      background: linear-gradient(180deg, #1d2d47 0%, #142033 100%);
+      border-color: rgba(56, 189, 248, 0.55);
+      color: #f8fafc;
+      transform: translateY(-1px);
+    }
+    .sidebar-collapse-btn:active {
+      transform: translateY(0);
+    }
+
+    /* Interactive Edge Toggle Handle locked to the Drawer Border via GPU translate3d */
+    .sidebar-edge-handle {
+      position: absolute;
+      top: 50%;
+      left: var(--sidebar-width, 360px);
+      right: auto;
+      transform: translate3d(-50%, -50%, 0);
+      will-change: transform;
+      backface-visibility: hidden;
+      width: 22px;
+      height: 52px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #142033 0%, #0d1524 100%);
+      border: 1px solid #283a56;
+      color: #94a3b8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      pointer-events: auto;
+      z-index: 1050;
+      padding: 0;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      transition: transform var(--sidebar-transition), background 0.2s var(--ease-out), border-color 0.2s var(--ease-out), color 0.2s var(--ease-out);
+    }
+    .sidebar-nav.collapsed .sidebar-edge-handle {
+      transform: translate3d(calc(var(--sidebar-rail-width, 68px) - var(--sidebar-width, 360px) - 50%), -50%, 0);
+    }
+    .sidebar-edge-handle:hover {
+      background: linear-gradient(180deg, #1b2c47 0%, #121e33 100%);
+      border-color: #38bdf8;
+      color: #ffffff;
+      transform: translate3d(-50%, -50%, 0) scale(1.08);
+    }
+    .sidebar-nav.collapsed .sidebar-edge-handle:hover {
+      transform: translate3d(calc(var(--sidebar-rail-width, 68px) - var(--sidebar-width, 360px) - 50%), -50%, 0) scale(1.08);
+    }
+    .sidebar-edge-handle .edge-chevron {
+      transition: transform 0.34s var(--ease-out);
+    }
+    .sidebar-nav.collapsed .sidebar-edge-handle .edge-chevron {
+      transform: rotate(180deg);
+    }
+
+    /* Collapsed Command Rail (68px) */
+    .sidebar-rail-view {
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: var(--sidebar-rail-width, 68px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0 14px;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transform: translate3d(-10px, 0, 0) scale(0.96);
+      will-change: opacity, transform;
+      backface-visibility: hidden;
+      transition: opacity 0.15s ease-out, transform 0.22s var(--ease-out), visibility 0s linear 0.16s;
+      z-index: 920;
+    }
+    .sidebar-nav.collapsed .sidebar-rail-view {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      transform: translate3d(0, 0, 0) scale(1);
+      transition: opacity 0.24s var(--ease-out) 0.08s, transform 0.32s var(--ease-out) 0.06s, visibility 0s linear 0s;
+    }
+
+    .rail-top-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 0 11px 12px;
+      border-bottom: 1px solid var(--line);
+      flex-shrink: 0;
+    }
+
+    .rail-btn {
+      position: relative;
+      width: 44px;
+      height: 42px;
+      border-radius: 10px;
+      border: 1px solid #23324a;
+      background: linear-gradient(180deg, #152033 0%, #0f1726 100%);
+      color: var(--text-muted);
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      padding: 0;
+      flex-shrink: 0;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 2px 5px rgba(0, 0, 0, 0.25);
+      transition: background 0.22s var(--ease-out), border-color 0.22s var(--ease-out), color 0.22s var(--ease-out), transform 0.22s var(--ease-out), box-shadow 0.22s var(--ease-out);
+    }
+    .rail-btn:hover {
+      background: linear-gradient(180deg, #1c2b42 0%, #142033 100%);
+      border-color: #38bdf8;
+      color: #ffffff;
+      transform: translateY(-1px);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 4px 12px rgba(0, 0, 0, 0.35);
+    }
+    .rail-btn:active {
+      transform: translateY(0);
+    }
+
+    .rail-river-pill {
+      height: 48px;
+      gap: 3px;
+      background: linear-gradient(180deg, rgba(56, 189, 248, 0.14) 0%, rgba(56, 189, 248, 0.05) 100%);
+      border-color: rgba(56, 189, 248, 0.4);
+      color: #38bdf8;
+    }
+    .rail-river-code {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: #f8fafc;
+      line-height: 1;
+    }
+
+    /* Vertical Mode Switcher Track in Collapsed Rail */
+    .rail-tabs-track {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 5px;
+      margin: 4px 0;
+      background: #070c14;
+      border: 1px solid #1e2b40;
+      border-radius: 13px;
+      flex-shrink: 0;
+    }
+    .rail-tab-glider {
+      position: absolute;
+      left: 5px;
+      right: 5px;
+      top: 5px;
+      height: 42px;
+      border-radius: 9px;
+      background: var(--glider-bg, rgba(56, 189, 248, 0.15));
+      border: 1px solid var(--glider-border, rgba(56, 189, 248, 0.42));
+      transform: translateY(calc(var(--active-tab-idx, 0) * (42px + 6px)));
+      transition: transform 0.28s var(--ease-out), background-color 0.28s var(--ease-out), border-color 0.28s var(--ease-out);
+      pointer-events: none;
+    }
+    .rail-tab-btn {
+      position: relative;
+      z-index: 1;
+      width: 42px;
+      height: 42px;
+      border-radius: 9px;
+      border: none;
+      background: transparent;
+      color: var(--text-dim);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      padding: 0;
+      transition: color 0.2s var(--ease-out), transform 0.2s var(--ease-out);
+    }
+    .rail-tab-btn:hover {
+      color: #f8fafc;
+      transform: scale(1.06);
+    }
+    .rail-tab-btn.active[data-rail-tab="planner"] { color: var(--tab-planner); }
+    .rail-tab-btn.active[data-rail-tab="scan"]    { color: var(--tab-scan); }
+    .rail-tab-btn.active[data-rail-tab="stats"]   { color: var(--tab-stats); }
+    .rail-tab-btn.active[data-rail-tab="layers"]  { color: var(--tab-layers); }
+
+    /* Quick Action Run Button in Collapsed Rail */
+    .rail-quick-action {
+      width: 44px;
+      height: 44px;
+      border-radius: 11px;
+      background: linear-gradient(180deg, #0ea5e9 0%, #0284c7 100%);
+      border: 1px solid #38bdf8;
+      color: #ffffff;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 4px 12px rgba(2, 132, 199, 0.35);
+    }
+    .rail-quick-action:hover {
+      background: linear-gradient(180deg, #38bdf8 0%, #0ea5e9 100%);
+      border-color: #7dd3fc;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 6px 16px rgba(2, 132, 199, 0.48);
+    }
+    .rail-quick-action.mode-scan {
+      background: linear-gradient(180deg, #14b8a6 0%, #0d9488 100%);
+      border-color: #2dd4bf;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 4px 12px rgba(13, 148, 136, 0.35);
+    }
+    .rail-quick-action.mode-scan:hover {
+      background: linear-gradient(180deg, #2dd4bf 0%, #14b8a6 100%);
+      border-color: #5eead4;
+    }
+
+    /* Bottom Pinned View Switcher in Collapsed Rail */
+    .rail-bottom-tools {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      padding: 12px 11px 0;
+      border-top: 1px solid var(--line);
+      flex-shrink: 0;
+    }
+    .rail-tool-btn {
+      width: 44px;
+      height: 38px;
+      border-radius: 9px;
+      background: #101929;
+      border: 1px solid #1f2d44;
+      color: var(--text-dim);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+    .rail-tool-btn.active {
+      background: rgba(56, 189, 248, 0.16);
+      border-color: rgba(56, 189, 248, 0.55);
+      color: #38bdf8;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 0 12px rgba(56, 189, 248, 0.2);
+    }
+
+    /* Floating Glassmorphic Tooltips for Collapsed Rail */
+    .rail-tooltip {
+      position: absolute;
+      left: calc(100% + 14px);
+      top: 50%;
+      transform: translateY(-50%) translateX(-6px);
+      background: rgba(11, 17, 28, 0.96);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: #f8fafc;
+      font: 600 13px/1.2 var(--font-body);
+      padding: 7px 12px;
+      border-radius: 8px;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      visibility: hidden;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      transition: opacity 0.18s var(--ease-out), transform 0.18s var(--ease-out), visibility 0.18s;
+      z-index: 2200;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .rail-tooltip::before {
+      content: '';
+      position: absolute;
+      left: -5px;
+      top: 50%;
+      transform: translateY(-50%) rotate(45deg);
+      width: 8px;
+      height: 8px;
+      background: rgba(11, 17, 28, 0.96);
+      border-left: 1px solid rgba(56, 189, 248, 0.35);
+      border-bottom: 1px solid rgba(56, 189, 248, 0.35);
+    }
+    .rail-btn:hover .rail-tooltip,
+    .rail-tab-btn:hover .rail-tooltip {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(-50%) translateX(0);
+    }
+    .rail-tooltip-sub {
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      font-weight: 500;
+      color: #93c5fd;
+    }
+    .panel-section { padding: 12px 18px; border-bottom: 1px solid var(--line); }
+    .panel-section-title {
+      font-family: var(--font-heading);
+      font-size: 17.5px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      text-transform: none;
+      color: #f8fafc;
+      margin-bottom: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .panel-section-title::before {
+      content: '';
+      width: 4px;
+      height: 18px;
+      border-radius: 4px;
+      background: var(--pane-accent, var(--accent));
+      flex-shrink: 0;
+    }
+
+    .input-group { margin-bottom: 0; }
+    .input-label { font-size: 14.5px; font-weight: 600; text-transform: none; letter-spacing: 0; color: #cbd5e1; margin-bottom: 6px; }
+    .panel-input, .select-dropdown {
+      font-size: 15px;
+      padding: 9px 13px;
+      background: #111a2b;
+      border: 1px solid #26354d;
+      border-radius: 9px;
+      color: #f8fafc;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25);
+      transition: border-color 0.2s var(--ease-out), background-color 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
+    }
+    .panel-input:hover, .select-dropdown:hover { border-color: #364968; }
+    .panel-input:focus, .select-dropdown:focus { border-color: var(--pane-accent, #38bdf8); background: #131f33; box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.12); }
+
+    .btn-run-analysis {
+      font-size: 16px;
+      font-weight: 700;
+      padding: 13px 20px;
+      letter-spacing: 0.01em;
+      border-radius: 10px;
+      margin: 0;
+      width: 100%;
+      flex-shrink: 0;
+    }
+
+    /* Segmented radio control with smooth sliding indicator */
+    .rank-choice {
+      position: relative;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      padding: 4px;
+      background: #0d1524;
+      border: 1px solid #233148;
+      border-radius: 9px;
+    }
+    .rank-choice::before {
+      content: '';
+      position: absolute;
+      top: 4px;
+      bottom: 4px;
+      left: 4px;
+      width: calc((100% - 14px) / 2);
+      border-radius: 7px;
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      transform: translateX(0%);
+      transition: transform 0.26s var(--ease-out);
+      pointer-events: none;
+    }
+    .rank-choice:has(input[value="nearest"]:checked)::before {
+      transform: translateX(calc(100% + 6px));
+    }
+    .rank-choice label {
+      position: relative;
+      z-index: 1;
+      font-size: 14.5px;
+      font-weight: 600;
+      padding: 8px 12px;
+      border: none !important;
+      background: transparent !important;
+      justify-content: center;
+      color: var(--text-muted);
+      transition: color 0.2s var(--ease-out);
+      cursor: pointer;
+    }
+    .rank-choice label input { display: none; }
+    .rank-choice label:has(input:checked) { color: #f8fafc; font-weight: 600; }
+
+    /* Smooth custom range sliders with typed inputs */
+    .slider-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 7px; }
+    .slider-head .input-label { margin-bottom: 0; }
+    .value-input-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      color: #e0f2fe;
+      font-size: 14.5px;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 3px 9px;
+      border-radius: 8px;
+      cursor: text;
+      transition: transform 0.2s var(--ease-out), background-color 0.2s var(--ease-out), border-color 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
+    }
+    .value-input-wrap:hover {
+      background: rgba(56, 189, 248, 0.18);
+      border-color: rgba(56, 189, 248, 0.45);
+    }
+    .value-input-wrap:focus-within {
+      background: rgba(56, 189, 248, 0.22);
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25);
+    }
+    .value-input-wrap.sliding {
+      transform: scale(1.03);
+      background: rgba(56, 189, 248, 0.24);
+      border-color: rgba(56, 189, 248, 0.6);
+    }
+    .value-input {
+      font-family: var(--font-mono);
+      font-weight: 600;
+      font-size: 14.5px;
+      color: #f8fafc;
+      background: transparent;
+      border: none;
+      outline: none;
+      text-align: right;
+      width: 48px;
+      padding: 0;
+      margin: 0;
+      -moz-appearance: textfield;
+      appearance: textfield;
+    }
+    .value-input::-webkit-outer-spin-button,
+    .value-input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    .value-unit {
+      font-family: var(--font-mono);
+      font-weight: 600;
+      font-size: 13.5px;
+      color: #93c5fd;
+      pointer-events: none;
+      user-select: none;
+    }
+    .hint-text { font-size: 13px; color: var(--text-dim); margin-top: 5px; line-height: 1.35; }
+
+    .sidebar-nav input[type=range] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 8px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #0284c7 0%, #38bdf8 var(--fill-pct, 10%), #182338 var(--fill-pct, 10%));
+      outline: none;
+      cursor: pointer;
+      margin: 4px 0;
+      transition: filter 0.2s var(--ease-out);
+    }
+    .sidebar-nav input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #f8fafc;
+      border: 2.5px solid #0ea5e9;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+      cursor: grab;
+      transition: transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out), border-color 0.2s var(--ease-out);
+    }
+    .sidebar-nav input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.08);
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 5px rgba(56, 189, 248, 0.15), 0 2px 6px rgba(0, 0, 0, 0.45);
+    }
+    .sidebar-nav input[type=range]:active::-webkit-slider-thumb {
+      cursor: grabbing;
+      transform: scale(1.12);
+      box-shadow: 0 0 0 7px rgba(56, 189, 248, 0.22), 0 2px 6px rgba(0, 0, 0, 0.5);
+    }
+    .sidebar-nav input[type=range]::-moz-range-thumb {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #f8fafc;
+      border: 2.5px solid #0ea5e9;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+      cursor: grab;
+      transition: transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
+    }
+
+    /* Color-coded non-scrolling sidebar tab switcher with smooth sliding pill */
+    .sidebar-tabs {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 5px;
+      padding: 4px;
+      margin: 8px 16px 8px;
+      border-radius: 10px;
+      border: 1px solid #1e2b40;
+      background: #070c14;
+      flex-shrink: 0;
+    }
+    .sidebar-tab-glider {
+      position: absolute;
+      top: 4px;
+      bottom: 4px;
+      left: 4px;
+      width: calc((100% - 23px) / 4);
+      border-radius: 8px;
+      background: var(--glider-bg, rgba(56, 189, 248, 0.15));
+      border: 1px solid var(--glider-border, rgba(56, 189, 248, 0.42));
+      transform: translateX(calc(var(--active-tab-idx, 0) * (100% + 5px)));
+      transition: transform 0.28s var(--ease-out), background-color 0.28s var(--ease-out), border-color 0.28s var(--ease-out);
+      pointer-events: none;
+    }
+    .sidebar-tab-btn {
+      position: relative;
+      z-index: 1;
+      appearance: none;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font: 600 14px var(--font-body);
+      padding: 8px 4px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.22s var(--ease-out);
+    }
+    .sidebar-tab-btn:hover { color: #f8fafc; }
+    .sidebar-tab-btn.active { color: #ffffff; }
+
+    /* Smooth cross-fade & subtle vertical glide between sidebar panes */
+    .sidebar-panes-wrap {
+      position: relative;
+      flex: 1;
+      display: grid;
+      overflow: hidden;
+      min-height: 0;
+    }
+    .sidebar-pane {
+      grid-area: 1 / 1;
+      padding: 12px 18px 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
+      min-height: 0;
+      opacity: 0;
+      transform: translateY(6px);
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.22s var(--ease-out), transform 0.22s var(--ease-out), visibility 0s linear 0.22s;
+    }
+    .sidebar-pane.active {
+      opacity: 1;
+      transform: translateY(0);
+      visibility: visible;
+      pointer-events: auto;
+      transition: opacity 0.26s var(--ease-out) 0.02s, transform 0.26s var(--ease-out) 0.02s, visibility 0s;
+    }
+    .sidebar-pane[data-side-pane="planner"] { --pane-accent: var(--tab-planner); }
+    .sidebar-pane[data-side-pane="scan"] { --pane-accent: var(--tab-scan); }
+    .sidebar-pane[data-side-pane="stats"] { --pane-accent: var(--tab-stats); }
+    .sidebar-pane[data-side-pane="layers"] { --pane-accent: var(--tab-layers); }
+
+    .planner-form {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      justify-content: space-between;
+      min-height: 0;
+      gap: clamp(10px, 1.8vh, 18px);
+    }
+    .scan-form {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+      gap: clamp(12px, 2vh, 20px);
+    }
+
+    /* River stats cards */
+    .telemetry-grid {
+      display: flex;
+      flex-direction: column;
+      gap: clamp(8px, 1.4vh, 12px);
+      flex: 1;
+      justify-content: space-between;
+      min-height: 0;
+      margin-top: 10px;
+      margin-bottom: clamp(10px, 2vh, 16px);
+    }
+    .hud-card {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      background: rgba(255, 255, 255, 0.025);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 9px;
+      padding: 12px 15px;
+      transition: background-color 0.2s var(--ease-out), border-color 0.2s var(--ease-out), transform 0.2s var(--ease-out);
+    }
+    .hud-card:hover {
+      transform: translateX(2px);
+      background: rgba(251, 191, 36, 0.05);
+      border-color: rgba(251, 191, 36, 0.25);
+    }
+    .hud-card-label { font-size: 14.5px; font-weight: 500; text-transform: none; letter-spacing: 0; color: var(--text-muted); white-space: nowrap; }
+    .hud-card-val { font-family: var(--font-mono); font-size: 16px; font-weight: 600; margin-top: 0; text-align: right; color: #f8fafc; }
+
+    /* Scan tab river overview card */
+    .scan-river-card {
+      background: rgba(45, 212, 191, 0.05);
+      border: 1px solid rgba(45, 212, 191, 0.22);
+      border-radius: 12px;
+      padding: 16px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .scan-river-name { font-family: var(--font-heading); font-size: 18px; font-weight: 700; color: #f8fafc; }
+    .scan-river-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.07); }
+    .scan-meta-label { font-size: 13px; color: var(--text-dim); }
+    .scan-meta-val { font-family: var(--font-mono); font-size: 16px; font-weight: 600; color: #5eead4; margin-top: 3px; }
+
+    /* Bottom pinned 2x2 tool grid */
+    .sidebar-tools {
+      margin-top: auto;
+      padding: 12px 18px 16px;
+      border-top: 1px solid var(--line);
+      flex-shrink: 0;
+      background: #090e18;
+    }
+    .tools-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .nav-item {
+      font-size: 14px;
+      font-weight: 600;
+      padding: 11px 12px;
+      color: var(--text-muted);
+      background: #101929;
+      border: 1px solid #1f2d44;
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      transition: background-color 0.2s var(--ease-out), border-color 0.2s var(--ease-out), color 0.2s var(--ease-out), transform 0.2s var(--ease-out);
+    }
+    .nav-item:hover {
+      background: #152136;
+      border-color: #2f4363;
+      color: #f8fafc;
+      transform: translateY(-1px);
+    }
+    .nav-item.active {
+      background: rgba(56, 189, 248, 0.14);
+      border-color: rgba(56, 189, 248, 0.5);
+      border-left: 1px solid rgba(56, 189, 248, 0.5);
+      color: #ffffff;
+      font-weight: 600;
+    }
+
+    /* Map layer control inside Layers tab */
+    #map-layers-slot .leaflet-control-layers { position: static; float: none; clear: none; margin: 10px 0 0; padding: 0 !important; background: none !important; border: none !important; border-radius: 0 !important; box-shadow: none !important; backdrop-filter: none; font: 500 15px var(--font-body); color: #e2e8f0; }
+    #map-layers-slot .leaflet-control-layers-list { height: auto !important; }
+    #map-layers-slot .leaflet-control-layers-scrollbar { overflow: visible; padding-right: 0; }
+    #map-layers-slot .leaflet-control-layers label {
+      margin: 0 0 8px;
+      padding: 12px 14px;
+      display: block;
+      background: rgba(255, 255, 255, 0.025);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 9px;
+      cursor: pointer;
+      font-size: 14.5px;
+      transition: background-color 0.18s var(--ease-out), border-color 0.18s var(--ease-out);
+    }
+    #map-layers-slot .leaflet-control-layers label:hover {
+      background: rgba(167, 139, 250, 0.07);
+      border-color: rgba(167, 139, 250, 0.3);
+    }
+    #map-layers-slot .leaflet-control-layers label > span, #map-layers-slot .leaflet-control-layers label > div { display: flex; align-items: center; gap: 10px; }
+    #map-layers-slot .leaflet-control-layers input { accent-color: #a78bfa; width: 18px; height: 18px; }
+    #map-layers-slot .leaflet-control-layers-base::before,
+    #map-layers-slot .leaflet-control-layers-overlays::before { display: block; font-size: 14.5px; font-weight: 600; letter-spacing: 0; text-transform: none; color: #c4b5fd; margin: 0 0 10px; }
+    #map-layers-slot .leaflet-control-layers-base::before { content: 'Basemap'; }
+    #map-layers-slot .leaflet-control-layers-overlays::before { content: 'River channels'; }
+    #map-layers-slot .leaflet-control-layers-separator { margin: 12px 0 !important; border-top-color: var(--line) !important; }
+
+    /* Result panels and overlays */
+    .view-panel { background: var(--panel-bg); backdrop-filter: none; border-color: #1e293b; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); animation: panelFadeIn 0.22s var(--ease-out); }
+    @keyframes panelFadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    .panel-header { background: none; padding: 14px 18px; }
+    .panel-title { font-size: 16px; font-weight: 600; }
+    .panel-body { font-size: 14px; line-height: 1.55; }
+    .analyser-box { background: var(--panel-bg); border-color: #1e293b; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6); }
+    .analyser-box::before { display: none; }
+    .analyser-radar { border-style: solid; border-color: rgba(56, 189, 248, 0.25); border-top-color: #38bdf8; animation-duration: 1s; }
+    .analyser-radar-core { display: none; }
+    .analyser-step-list { font-family: var(--font-body); font-size: 13px; max-height: none; background: #0f1726; }
+
+    /* Aqua chat */
+    .drawer-header { background: none; }
+    .chat-bubble { font-size: 14px; }
+    .chat-bubble.aqua h3 { font-size: 15px; color: #f1f5f9; }
+    .quick-pill { font-size: 13px; padding: 6px 12px; color: #e0f2fe; }
+    .drawer-input { font-size: 14px; padding: 10px 12px; }
 </style>
 </head>
 <body>
@@ -744,207 +1656,276 @@
   <!-- Top Navigation Header (Open Center for Zero Master Toggle Overlap) -->
   <header>
     <div class="brand-section" onclick="switchRiver('ganga')">
-      <div class="brand-logo-badge">🌊</div>
-      <div>
-        <div class="brand-title">River Eyes <span style="font-size: 11px; font-weight: 500; color: #38bdf8;">v2.0</span></div>
-        <div class="brand-subtitle">
-          <span class="live-pulse"></span>
-          <span>GLOBAL HYDROLOGY & DAM SITING INTELLIGENCE</span>
-        </div>
+      <div class="brand-logo-badge">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2"><path d="M2 12c3-4 6-4 9 0s6 4 9 0"/></svg>
       </div>
+      <div class="brand-title">River Eyes</div>
     </div>
 
     <!-- Center Spacer: Guaranteed Open Corridor for Master Floating Toggle Bar -->
     <div class="header-center-spacer"></div>
 
     <!-- Right Quick Controls -->
-    <div style="display: flex; align-items: center; gap: 10px;">
-      <div style="display: flex; align-items: center; gap: 6px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.25); padding: 5px 12px; border-radius: 20px; font-size: 11px; color: #34d399; font-weight: 500;">
-        <span class="live-pulse"></span>
-        <span>Monitoring Active</span>
-      </div>
-
-      <button class="btn btn-primary" onclick="openDamPlannerTab()">
-        <span>⚡</span>
-        <span>Plan Dam Siting (MW)</span>
-      </button>
-
-      <button class="btn btn-aqua" onclick="toggleAqua(true)">
-        <span>✨</span>
-        <span>Aqua (Gemma 4)</span>
-      </button>
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <button class="btn btn-primary" onclick="openDamPlannerTab()">Plan dam sites</button>
+      <button class="btn btn-aqua" id="btn-ask-aqua" onclick="toggleAqua()">Ask Aqua</button>
     </div>
   </header>
 
   <!-- App Main Workspace Container -->
   <div class="app-container">
-    <!-- Left Glassmorphic Control Hub (Mirrors Forest Eyes Structure) -->
-    <nav class="sidebar-nav">
-      <!-- SECTION 1: Location & Basin Input -->
-      <div class="panel-section">
-        <h2 class="panel-section-title">📍 River Basin & Location Input</h2>
-        <div class="input-group">
-          <label class="input-label" for="world-river-select">Select Active Basin</label>
-          <select id="world-river-select" class="select-dropdown" onchange="switchRiver(this.value)" style="width: 100%;">
-            <optgroup label="Asia">
-              <option value="ganga" selected>Ganga (Ganges) — Himalayan Basin</option>
-              <option value="yamuna">Yamuna River — Delhi & Alluvial Basin</option>
-              <option value="brahmaputra">Brahmaputra — Great Bend & Assam Valley</option>
-              <option value="indus">Indus River — Karakoram Canyon Reach</option>
-              <option value="yangtze">Yangtze River — Three Gorges Corridor</option>
-              <option value="mekong">Mekong River — Lancang & Indochina</option>
-            </optgroup>
-            <optgroup label="Americas">
-              <option value="amazon">Amazon River — Equatorial Mega-Basin</option>
-              <option value="mississippi">Mississippi River — Great Valley Basin</option>
-            </optgroup>
-            <optgroup label="Africa">
-              <option value="nile">Nile River — Blue & White Confluence</option>
-              <option value="congo">Congo River — Inga Rapids Craton</option>
-            </optgroup>
-            <optgroup label="Europe">
-              <option value="danube">Danube River — Iron Gate Gorge</option>
-              <option value="rhine">Rhine River — Alpine to Graben Delta</option>
-            </optgroup>
-          </select>
-        </div>
+    <!-- Left Control Sidebar (Zero Scroll, Collapsible) -->
+    <nav class="sidebar-nav" id="sidebar-nav">
+      <div class="sidebar-clip-shell">
+        <div class="sidebar-expanded-view">
+          <!-- River Selector -->
+          <div class="panel-section" style="display: flex; align-items: center; gap: 10px; padding: 12px 16px; flex-shrink: 0;">
+            <label class="input-label" for="world-river-select" style="margin: 0; white-space: nowrap; font-size: 15px; font-weight: 600; color: #f1f5f9;">River</label>
+            <select id="world-river-select" class="select-dropdown" onchange="switchRiver(this.value)" style="flex: 1; min-width: 0;" aria-label="River">
+              <optgroup label="Asia">
+                <option value="ganga" selected>Ganga</option>
+                <option value="yamuna">Yamuna</option>
+                <option value="brahmaputra">Brahmaputra</option>
+                <option value="indus">Indus</option>
+                <option value="yangtze">Yangtze</option>
+                <option value="mekong">Mekong</option>
+              </optgroup>
+              <optgroup label="Americas">
+                <option value="amazon">Amazon</option>
+                <option value="mississippi">Mississippi</option>
+              </optgroup>
+              <optgroup label="Africa">
+                <option value="nile">Nile</option>
+                <option value="congo">Congo</option>
+              </optgroup>
+              <optgroup label="Europe">
+                <option value="danube">Danube</option>
+                <option value="rhine">Rhine</option>
+              </optgroup>
+            </select>
+            <button type="button" class="sidebar-collapse-btn" onclick="toggleSidebar(true)" title="Collapse sidebar ([)" aria-label="Collapse sidebar">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"></rect><line x1="9" y1="3" x2="9" y2="21"></line><polyline points="15 9 12 12 15 15"></polyline></svg>
+            </button>
+          </div>
 
+          <!-- Color-Coded Sidebar Section Tabs -->
+          <div class="sidebar-tabs" id="sidebar-tabs" role="tablist" aria-label="Sidebar sections">
+            <div class="sidebar-tab-glider" aria-hidden="true"></div>
+            <button type="button" class="sidebar-tab-btn active" data-side-tab="planner" onclick="switchSidebarTab('planner')">Planner</button>
+            <button type="button" class="sidebar-tab-btn" data-side-tab="scan" onclick="switchSidebarTab('scan')">Scan</button>
+            <button type="button" class="sidebar-tab-btn" data-side-tab="stats" onclick="switchSidebarTab('stats')">Stats</button>
+            <button type="button" class="sidebar-tab-btn" data-side-tab="layers" onclick="switchSidebarTab('layers')">Layers</button>
+          </div>
+
+          <!-- Animated Panes Wrapper -->
+          <div class="sidebar-panes-wrap">
+            <!-- Pane 1: City Power Planner (Sky Blue) -->
+            <div class="sidebar-pane active" id="city-planner" data-side-pane="planner">
+              <div class="planner-form">
+                <h2 class="panel-section-title">Power for a city</h2>
+                <div class="input-group">
+                  <label class="input-label" for="plan-city">City</label>
+                  <div style="display: flex; gap: 10px;">
+                    <input type="text" id="plan-city" class="panel-input" style="flex: 1;" value="Dehradun" placeholder="e.g. Shimla" />
+                    <button class="btn" id="plan-city-go" type="button" style="padding: 0 16px;" title="Find city" aria-label="Find city"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></button>
+                  </div>
+                  <div id="plan-city-found" class="hint-text">Dehradun, Uttarakhand, India</div>
+                  <input type="hidden" id="target-lat" value="30.3165" />
+                  <input type="hidden" id="target-lon" value="78.0322" />
+                  <input type="hidden" id="target-location-name" value="Dehradun" />
+                </div>
+
+                <div class="input-group">
+                  <div class="slider-head">
+                    <label class="input-label" for="mw-slider">Power needed</label>
+                    <div class="value-input-wrap" id="mw-wrap" onclick="document.getElementById('mw-input').focus()">
+                      <input type="number" id="mw-input" class="value-input" min="50" max="3000" step="5" value="300" aria-label="Power needed in MW" />
+                      <span class="value-unit">MW</span>
+                    </div>
+                  </div>
+                  <input type="range" id="mw-slider" min="50" max="3000" step="5" value="300" />
+                </div>
+
+                <div class="input-group">
+                  <div class="slider-head">
+                    <label class="input-label" for="plan-radius">Search radius</label>
+                    <div class="value-input-wrap" id="plan-radius-wrap" onclick="document.getElementById('plan-radius-input').focus()">
+                      <input type="number" id="plan-radius-input" class="value-input" min="50" max="400" step="1" value="200" aria-label="Search radius in km" />
+                      <span class="value-unit">km</span>
+                    </div>
+                  </div>
+                  <input type="range" id="plan-radius" min="50" max="400" step="1" value="200" />
+                </div>
+
+                <div class="input-group">
+                  <label class="input-label">Priority</label>
+                  <div class="rank-choice" role="radiogroup" aria-label="Rank sites by">
+                    <label><input type="radio" name="plan-rank" value="best" checked /> <span>Best sites</span></label>
+                    <label><input type="radio" name="plan-rank" value="nearest" /> <span>Closest</span></label>
+                  </div>
+                </div>
+
+                <button class="btn btn-primary btn-run-analysis" onclick="runCityPlan()">Find dam sites</button>
+              </div>
+            </div>
+
+            <!-- Pane 2: Scan a whole river (Teal) -->
+            <div class="sidebar-pane" id="river-atlas" data-side-pane="scan">
+              <div class="scan-form">
+                <h2 class="panel-section-title">Scan a whole river</h2>
+                <div class="scan-river-card">
+                  <div>
+                    <div class="scan-meta-label">Active river</div>
+                    <div class="scan-river-name" id="scan-card-name">Ganga (Ganges)</div>
+                  </div>
+                  <div class="scan-river-meta">
+                    <div>
+                      <div class="scan-meta-label">Channel length</div>
+                      <div class="scan-meta-val" id="scan-card-length">2,525 km</div>
+                    </div>
+                    <div>
+                      <div class="scan-meta-label">Mean discharge</div>
+                      <div class="scan-meta-val" id="scan-card-flow">16,650 m³/s</div>
+                    </div>
+                  </div>
+                </div>
+                <p class="hint-text" style="margin-top: 14px; font-size: 14.5px; line-height: 1.5; color: var(--text-muted);">
+                  Finds every non-overlapping dam site from source to mouth along the selected river, or let you pick any river directly on the map.
+                </p>
+              </div>
+
+              <div style="display: flex; flex-direction: column; gap: 12px; margin-top: clamp(14px, 2.5vh, 24px); margin-bottom: clamp(10px, 2vh, 16px);">
+                <div id="pick-river-hint" class="hint-text" style="display: none; margin-bottom: 4px; padding: 10px 12px; border-radius: 8px; background: rgba(253, 224, 71, 0.08); border: 1px solid rgba(253, 224, 71, 0.3); color: #fef08a;">Hover a river to highlight it, click to scan. Esc to cancel.</div>
+                <button class="btn btn-scan-teal btn-run-analysis" style="margin-top: 0; margin-bottom: 0;" onclick="runRiverAtlas('selected')">
+                  <span id="atlas-selected-label">Scan the Ganga</span>
+                </button>
+                <button class="btn" id="pick-river-btn" style="width: 100%; justify-content: center; padding: 13px; font-size: 15px;" onclick="setPickMode(!pickMode)">Pick a river on the map</button>
+              </div>
+            </div>
+
+            <!-- Pane 3: River stats (Amber) -->
+            <div class="sidebar-pane" id="sidebar-stats" data-side-pane="stats">
+              <h2 class="panel-section-title" style="flex-shrink: 0;">River stats</h2>
+              <div class="telemetry-grid">
+                <div class="hud-card">
+                  <div class="hud-card-label">Length</div>
+                  <div class="hud-card-val" id="hud-length">2,525 km</div>
+                </div>
+                <div class="hud-card">
+                  <div class="hud-card-label">Discharge</div>
+                  <div class="hud-card-val" id="hud-discharge">16,650 m³/s</div>
+                </div>
+                <div class="hud-card">
+                  <div class="hud-card-label">Catchment</div>
+                  <div class="hud-card-val" id="hud-catchment">861,452 km²</div>
+                </div>
+                <div class="hud-card">
+                  <div class="hud-card-label">Flow vs normal</div>
+                  <div class="hud-card-val" id="hud-health" style="color: #38bdf8;">…</div>
+                </div>
+                <div class="hud-card">
+                  <div class="hud-card-label">Soil</div>
+                  <div class="hud-card-val" id="hud-bearing" style="color: #34d399;">…</div>
+                </div>
+                <div class="hud-card">
+                  <div class="hud-card-label">Earthquakes nearby</div>
+                  <div class="hud-card-val" id="hud-seismic">…</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Pane 4: Map layers (Violet) -->
+            <div class="sidebar-pane" id="sidebar-layers" data-side-pane="layers">
+              <div>
+                <h2 class="panel-section-title">Map layers</h2>
+                <div id="map-layers-slot"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Pinned Tools (2x2 Grid) -->
+          <div class="sidebar-tools">
+            <div class="tools-grid">
+              <div class="nav-item active" id="nav-overview" onclick="switchTab('overview')">
+                <span>Overview</span>
+              </div>
+              <div class="nav-item" id="nav-dam-planner" onclick="switchTab('dam-planner')">
+                <span>Dam sites</span>
+              </div>
+              <div class="nav-item" id="nav-geotech" onclick="switchTab('geotech')">
+                <span>Site info</span>
+              </div>
+              <div class="nav-item" id="nav-water" onclick="switchTab('water')">
+                <span>Water quality</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <!-- SECTION 2: City Power Planner — a city needs X MW: where should the dams go? -->
-      <div class="panel-section" id="city-planner">
-        <h2 class="panel-section-title">⚡ City Power Planner</h2>
-        <div class="input-group">
-          <label class="input-label" for="plan-city">City that needs electricity</label>
-          <div style="display: flex; gap: 6px;">
-            <input type="text" id="plan-city" class="panel-input" style="flex: 1;" value="Dehradun" placeholder="e.g. Dehradun, Shimla, Guwahati" />
-            <button class="btn" id="plan-city-go" type="button" style="padding: 0 12px;" title="Find city">🔍</button>
-          </div>
-          <div id="plan-city-found" style="font-size: 10px; color: var(--text-dim); margin-top: 4px;">📍 Dehradun, Uttarakhand, India (30.32, 78.03)</div>
-          <input type="hidden" id="target-lat" value="30.3165" />
-          <input type="hidden" id="target-lon" value="78.0322" />
-          <input type="hidden" id="target-location-name" value="Dehradun" />
+      <!-- Collapsed Mode: 68px Hydro Command Rail -->
+      <div class="sidebar-rail-view" id="sidebar-rail" aria-label="Collapsed sidebar navigation">
+        <div class="rail-top-group">
+          <button type="button" class="rail-btn" onclick="toggleSidebar(false)" aria-label="Expand sidebar">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"></rect><line x1="9" y1="3" x2="9" y2="21"></line><polyline points="13 9 16 12 13 15"></polyline></svg>
+            <span class="rail-tooltip">Expand sidebar <span class="rail-tooltip-sub">[</span></span>
+          </button>
+          <button type="button" class="rail-btn rail-river-pill" onclick="openRiverSelectFromRail()" aria-label="Switch active river">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"></path><path d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"></path></svg>
+            <span class="rail-river-code" id="rail-river-code">GAN</span>
+            <span class="rail-tooltip">River: <span id="rail-river-name">Ganga</span> <span class="rail-tooltip-sub">Switch</span></span>
+          </button>
         </div>
 
-        <div class="input-group">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-            <label class="input-label" style="margin-bottom: 0;">Power needed</label>
-            <span id="mw-label" style="font-family: var(--font-mono); font-weight: 700; color: #38bdf8; font-size: 12px;">300 MW</span>
-          </div>
-          <input type="range" id="mw-slider" min="50" max="3000" step="50" value="300" style="width: 100%; accent-color: #38bdf8; cursor: pointer;" oninput="document.getElementById('mw-label').textContent = this.value + ' MW'" />
-          <div style="display: flex; justify-content: space-between; font-size: 9px; color: var(--text-dim); margin-top: 2px;">
-            <span>50 MW</span><span>1,500 MW</span><span>3,000 MW</span>
-          </div>
+        <div class="rail-tabs-track" id="rail-tabs" role="tablist" aria-label="Sidebar modes">
+          <div class="rail-tab-glider" aria-hidden="true"></div>
+          <button type="button" class="rail-tab-btn active" data-rail-tab="planner" onclick="selectRailTab('planner')" aria-label="Power Planner">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+            <span class="rail-tooltip">Power Planner <span class="rail-tooltip-sub">City MW</span></span>
+          </button>
+          <button type="button" class="rail-tab-btn" data-rail-tab="scan" onclick="selectRailTab('scan')" aria-label="Scan River">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="2" x2="12" y2="5"></line><line x1="12" y1="19" x2="12" y2="22"></line><line x1="2" y1="12" x2="5" y2="12"></line><line x1="19" y1="12" x2="22" y2="12"></line></svg>
+            <span class="rail-tooltip">Scan River <span class="rail-tooltip-sub">Basin</span></span>
+          </button>
+          <button type="button" class="rail-tab-btn" data-rail-tab="stats" onclick="selectRailTab('stats')" aria-label="River Stats">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+            <span class="rail-tooltip">River Stats <span class="rail-tooltip-sub">Telemetry</span></span>
+          </button>
+          <button type="button" class="rail-tab-btn" data-rail-tab="layers" onclick="selectRailTab('layers')" aria-label="Map Layers">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+            <span class="rail-tooltip">Map Layers <span class="rail-tooltip-sub">Overlays</span></span>
+          </button>
         </div>
 
-        <div class="input-group">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-            <label class="input-label" style="margin-bottom: 0;">Search rivers within</label>
-            <span id="plan-radius-val" style="font-family: var(--font-mono); font-weight: 700; color: #38bdf8; font-size: 12px;">200 km</span>
-          </div>
-          <input type="range" id="plan-radius" min="50" max="400" step="25" value="200" style="width: 100%; accent-color: #38bdf8; cursor: pointer;" oninput="document.getElementById('plan-radius-val').textContent = this.value + ' km'" />
-          <div style="display: flex; justify-content: space-between; font-size: 9px; color: var(--text-dim); margin-top: 2px;">
-            <span>50 km</span><span>225 km</span><span>400 km</span>
-          </div>
-        </div>
-
-        <div class="input-group" style="margin-bottom: 4px;">
-          <label class="input-label">Rank sites by</label>
-          <div class="rank-choice" role="radiogroup" aria-label="Rank sites by">
-            <label><input type="radio" name="plan-rank" value="best" checked /> <span>Best overall</span></label>
-            <label><input type="radio" name="plan-rank" value="nearest" /> <span>Nearest to the city</span></label>
-          </div>
-        </div>
-
-        <button class="btn btn-primary btn-run-analysis" style="margin-top: 8px;" onclick="runCityPlan()">
-          <span>Find Dam Sites for this City</span>
+        <button type="button" class="rail-btn rail-quick-action" id="rail-quick-run" onclick="triggerRailQuickAction()" aria-label="Run analysis">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="6 4 20 12 6 20 6 4"></polygon></svg>
+          <span class="rail-tooltip" id="rail-quick-tooltip">Find dam sites <span class="rail-tooltip-sub">Run</span></span>
         </button>
-      </div>
 
-      <!-- SECTION 2b: River Dam Atlas — every feasible dam site along one whole river -->
-      <div class="panel-section" id="river-atlas">
-        <h2 class="panel-section-title">🗺️ River Dam Atlas</h2>
-        <p style="font-size: 11px; color: var(--text-muted); margin: 0 0 8px;">Find every feasible dam site along a whole river, source to mouth.</p>
-        <button class="btn btn-primary btn-run-analysis" onclick="runRiverAtlas('selected')">
-          <span id="atlas-selected-label">Scan the selected river</span>
-        </button>
-        <button class="btn" id="pick-river-btn" style="width: 100%; justify-content: center; margin-top: 6px; font-size: 12px; border-color: rgba(253,224,71,.5);" onclick="setPickMode(!pickMode)">🖱️ Pick a river on the map</button>
-        <div id="pick-river-hint" style="display: none; font-size: 11px; color: var(--text-muted); margin-top: 6px; line-height: 1.45;">Move the cursor over a river: its whole length lights up. Click it to find every dam site along it. Esc cancels.</div>
-      </div>
-
-      <!-- SECTION 3: Basin Telemetry & Real-Time Metrics -->
-      <div class="panel-section">
-        <h2 class="panel-section-title">📊 Basin Telemetry & Real-Time Metrics</h2>
-        <div class="telemetry-grid">
-          <div class="hud-card">
-            <div class="hud-card-label">📏 Length</div>
-            <div class="hud-card-val" id="hud-length">2,525 km</div>
-          </div>
-          <div class="hud-card">
-            <div class="hud-card-label">🌊 Discharge</div>
-            <div class="hud-card-val" id="hud-discharge">16,650 m³/s</div>
-          </div>
-          <div class="hud-card">
-            <div class="hud-card-label">🌐 Catchment</div>
-            <div class="hud-card-val" id="hud-catchment">861,452 km²</div>
-          </div>
-          <div class="hud-card">
-            <div class="hud-card-label">💧 Flow vs normal (site)</div>
-            <div class="hud-card-val" id="hud-health" style="color: #38bdf8;">…</div>
-          </div>
-          <div class="hud-card">
-            <div class="hud-card-label">🧱 Soil (site)</div>
-            <div class="hud-card-val" id="hud-bearing" style="color: #34d399;">…</div>
-          </div>
-          <div class="hud-card">
-            <div class="hud-card-label">⚠️ M5+ quakes ≤150 km</div>
-            <div class="hud-card-val" id="hud-seismic">…</div>
-          </div>
+        <div class="rail-bottom-tools" role="group" aria-label="Workspace views">
+          <button type="button" class="rail-btn rail-tool-btn active" id="rail-nav-overview" onclick="switchTab('overview')" aria-label="Overview">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
+            <span class="rail-tooltip">Overview</span>
+          </button>
+          <button type="button" class="rail-btn rail-tool-btn" id="rail-nav-dam-planner" onclick="switchTab('dam-planner')" aria-label="Dam sites">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M5 6v14"></path><path d="M19 6v14"></path><path d="M9 10h6"></path><path d="M9 14h6"></path><path d="M8 18h8"></path></svg>
+            <span class="rail-tooltip">Dam sites</span>
+          </button>
+          <button type="button" class="rail-btn rail-tool-btn" id="rail-nav-geotech" onclick="switchTab('geotech')" aria-label="Site info">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            <span class="rail-tooltip">Site info</span>
+          </button>
+          <button type="button" class="rail-btn rail-tool-btn" id="rail-nav-water" onclick="switchTab('water')" aria-label="Water quality">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg>
+            <span class="rail-tooltip">Water quality</span>
+          </button>
         </div>
       </div>
 
-      <!-- SECTION 4: Hydrological Modules -->
-      <div class="panel-section">
-        <h2 class="panel-section-title">🧭 Hydrological Modules</h2>
-        <div style="display: flex; flex-direction: column; gap: 4px;">
-          <div class="nav-item active" id="nav-overview" onclick="switchTab('overview')">
-            <span>🗺️</span>
-            <span>Overview & Telemetry</span>
-          </div>
-          <div class="nav-item" id="nav-dam-planner" onclick="switchTab('dam-planner')">
-            <span>⚡</span>
-            <span>Energy Dam Siting</span>
-            <span class="nav-badge-pill">NEW</span>
-          </div>
-          <div class="nav-item" id="nav-geotech" onclick="switchTab('geotech')">
-            <span>🧪</span>
-            <span>Site Conditions</span>
-          </div>
-          <div class="nav-item" id="nav-water" onclick="switchTab('water')" title="Turbidity and chlorophyll of a river or lake from recent Sentinel-2 satellite images">
-            <span>💧</span>
-            <span>Water Quality (Sentinel-2)</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- SECTION 5: Active Engine & Standards -->
-      <div class="panel-section">
-        <div style="padding: 10px; background: rgba(9, 14, 24, 0.9); border-radius: 8px; border: 1px solid var(--border-subtle);">
-          <div style="font-size: 10px; color: var(--text-dim); text-transform: uppercase; font-weight: 700;">Active Engine Standards</div>
-          <div style="font-size: 11px; color: var(--green-light); font-weight: 600; margin-top: 2px;">⚡ P = η·ρ·g·Q·H</div>
-          <div style="font-size: 10px; color: var(--text-muted); margin-top: 4px;">HydroRIVERS · GloFAS · SoilGrids · USGS · AWS Terrain</div>
-        </div>
-
-        <!-- Aqua Assistant Pill (Like Treeko) -->
-        <button type="button" class="aqua-pill" style="margin-top: 10px;" onclick="toggleAqua(true)" aria-label="Open Aqua assistant">
-          <span class="aqua-avatar" aria-hidden="true">🌊</span>
-          <div class="aqua-text">
-            <div class="aqua-name">Aqua</div>
-            <div class="aqua-desc">Gemma 4 Hydrology Assistant</div>
-          </div>
-          <span class="aqua-sparkle">✨</span>
-        </button>
-      </div>
+      <!-- Edge Handle Pill on Right Border -->
+      <button type="button" class="sidebar-edge-handle" id="sidebar-edge-handle" onclick="toggleSidebar()" title="Toggle sidebar ([)" aria-label="Toggle sidebar">
+        <svg class="edge-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+      </button>
     </nav>
 
     <!-- Workspace & Map Area -->
@@ -957,14 +1938,13 @@
         <div class="view-panel" id="dam-planner-panel" style="display: none;">
           <div class="panel-header">
             <div class="panel-title">
-              <span>⚡</span>
               <span id="dam-panel-title">Dam Site Plan</span>
             </div>
-            <button class="btn" style="padding: 2px 6px;" onclick="closePanel('dam-planner-panel')">✕</button>
+            <button class="btn" style="padding: 2px 6px;" onclick="closePanel('dam-planner-panel')">&times;</button>
           </div>
           <div class="panel-body">
-                        <!-- Results container -->
-            <div id="dam-plan-results" style="margin-top: 16px; display: none;"></div>
+            <!-- Results container -->
+            <div id="dam-plan-results" style="margin-top: 8px; display: none;"></div>
           </div>
         </div>
 
@@ -972,16 +1952,14 @@
         <div class="view-panel" id="water-panel" style="display: none;">
           <div class="panel-header">
             <div class="panel-title">
-              <span>💧</span>
-              <span>Water Quality (Sentinel-2)</span>
+              <span>Water Quality</span>
             </div>
-            <button class="btn" style="padding: 2px 6px;" onclick="closePanel('water-panel')">✕</button>
+            <button class="btn" style="padding: 2px 6px;" onclick="closePanel('water-panel')">&times;</button>
           </div>
           <div class="panel-body">
-            <p style="color: var(--text-muted); font-size: 12px; margin: 0 0 8px;">Turbidity and algae (chlorophyll) of a river or lake, measured from the newest cloud-free Sentinel-2 satellite images. Gemma 4 explains what it sees.</p>
-            <div id="water-selected" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Click a river or lake on the map first.</div>
-            <button class="btn btn-primary" id="water-run" style="width: 100%; justify-content: center; padding: 10px;" onclick="runWaterQuality()">Analyse water quality here</button>
-            <div id="water-results" style="margin-top: 10px;"></div>
+            <div id="water-selected" style="font-size: 13px; color: var(--text-muted); margin-bottom: 10px;">Click a river or lake on the map first.</div>
+            <button class="btn btn-primary" id="water-run" style="width: 100%; justify-content: center; padding: 11px; font-size: 14px;" onclick="runWaterQuality()">Check water quality</button>
+            <div id="water-results" style="margin-top: 12px;"></div>
           </div>
         </div>
 
@@ -989,10 +1967,9 @@
         <div class="view-panel" id="geotech-panel" style="display: none;">
           <div class="panel-header">
             <div class="panel-title">
-              <span>🧪</span>
-              <span>Site Conditions: Soil, Earthquakes, Flow</span>
+              <span>Site Conditions</span>
             </div>
-            <button class="btn" style="padding: 2px 6px;" onclick="closePanel('geotech-panel')">✕</button>
+            <button class="btn" style="padding: 2px 6px;" onclick="closePanel('geotech-panel')">&times;</button>
           </div>
           <div class="panel-body" id="geotech-panel-body">
             <!-- Injected via JS -->
@@ -1012,82 +1989,73 @@
         <div class="analyser-radar-core"></div>
       </div>
       <h3 style="font-family: var(--font-heading); font-size: 18px; text-align: center; color: #ffffff;">
-        Analysing Hydrological & Geotechnical Terrain...
+        Scanning river sites
       </h3>
-      <p style="font-size: 12px; color: var(--text-muted); text-align: center; margin-top: 4px;">
-        Executing multi-criteria cascade sizing for <span id="overlay-mw-target" style="color: #38bdf8; font-weight: 700;">600 MW</span> power target
+      <p style="font-size: 14px; color: var(--text-muted); text-align: center; margin-top: 4px;">
+        <span id="overlay-mw-target" style="color: #38bdf8; font-weight: 600;">300 MW</span>
       </p>
 
       <div class="analyser-step-list" id="analyser-step-list">
         <div class="analyser-step active" id="step-1">
-          <span>⏳</span>
-          <span>[Stage 1/5] Snapping to the nearest major river (HydroRIVERS, HydroSHEDS)...</span>
+          <span>1.</span>
+          <span>Finding nearby rivers...</span>
         </div>
         <div class="analyser-step" id="step-2">
-          <span>⚪</span>
-          <span>[Stage 2/5] Following ~120 km of the main channel up- and downstream...</span>
+          <span>2.</span>
+          <span>Tracing river channel...</span>
         </div>
         <div class="analyser-step" id="step-3">
-          <span>⚪</span>
-          <span>[Stage 3/5] Sampling river-bed and valley-wall elevations (Copernicus DEM 90 m)...</span>
+          <span>3.</span>
+          <span>Sampling elevation and gorge drop...</span>
         </div>
         <div class="analyser-step" id="step-4">
-          <span>⚪</span>
-          <span>[Stage 4/5] Computing head H, flow Q and power P = &eta;&middot;&rho;&middot;g&middot;Q&middot;H for every ~6 km diversion...</span>
+          <span>4.</span>
+          <span>Computing head, flow, and power...</span>
         </div>
         <div class="analyser-step" id="step-5">
-          <span>⚪</span>
-          <span>[Stage 5/5] Ranking sites and choosing non-overlapping schemes for the target...</span>
+          <span>5.</span>
+          <span>Ranking candidate sites...</span>
         </div>
       </div>
 
-      <div style="background: rgba(2, 132, 199, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 10px; display: flex; align-items: center; justify-content: space-between;">
-        <span style="font-size: 11px; font-family: var(--font-mono); color: #38bdf8;" id="analyser-status-text">INITIALIZING SATELLITE RECONNAISSANCE</span>
-        <span style="font-size: 12px; font-family: var(--font-mono); font-weight: 700; color: #ffffff;" id="analyser-progress-pct">20%</span>
+      <div style="background: rgba(2, 132, 199, 0.12); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 8px; padding: 10px 12px; display: flex; align-items: center; justify-content: space-between;">
+        <span style="font-size: 13px; color: #e2e8f0;" id="analyser-status-text">Starting scan</span>
+        <span style="font-size: 13px; font-family: var(--font-mono); font-weight: 700; color: #38bdf8;" id="analyser-progress-pct">20%</span>
       </div>
     </div>
   </div>
 
   <!-- =========================================================================
-       AQUA (GEMMA 4) DRAWER
+       AQUA DRAWER
        ========================================================================= -->
   <aside id="aqua-drawer">
     <div class="drawer-header">
       <div style="display: flex; align-items: center; gap: 10px;">
-        <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #06b6d4, #2563eb); display: flex; align-items: center; justify-content: center; font-size: 14px;">✨</div>
-        <div>
-          <div style="font-size: 13px; font-weight: 700; color: #ffffff;">Aqua Assistant</div>
-          <div style="font-size: 10px; color: #38bdf8; font-family: var(--font-mono);">Gemma 4 · Hydrology Assistant</div>
-        </div>
+        <div style="width: 28px; height: 28px; border-radius: 7px; background: #0284c7; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #fff;">A</div>
+        <div style="font-size: 15px; font-weight: 600; color: #ffffff;">Aqua</div>
       </div>
-      <button class="btn" style="padding: 4px 8px;" onclick="toggleAqua(false)">✕</button>
+      <button class="btn" style="padding: 4px 8px;" onclick="toggleAqua(false)">&times;</button>
     </div>
 
     <!-- Quick Query Suggestions -->
     <div class="quick-pill-strip">
-      <div class="quick-pill" onclick="sendAquaPrompt('Plan an optimal dam cascade for 800 MW electricity in Garhwal valley')">⚡ 800 MW Dam Plan</div>
-      <div class="quick-pill" onclick="sendAquaPrompt('What soil and foundation investigations are needed before building a weir on the active river?')">🧪 Site Investigation</div>
-      <div class="quick-pill" onclick="sendAquaPrompt('Explain CPCB water quality parameters and DO/BOD standards')">💧 Water Quality WQI</div>
-      <div class="quick-pill" onclick="sendAquaPrompt('How should earthquake history affect hydropower site selection on the active river?')">🚨 Seismic Risk</div>
+      <div class="quick-pill" onclick="sendAquaPrompt('Plan an optimal dam cascade for 800 MW electricity in Garhwal valley')">800 MW dam plan</div>
+      <div class="quick-pill" onclick="sendAquaPrompt('What soil and foundation investigations are needed before building a weir on the active river?')">Site investigation</div>
+      <div class="quick-pill" onclick="sendAquaPrompt('Explain water quality parameters and DO/BOD standards')">Water quality</div>
+      <div class="quick-pill" onclick="sendAquaPrompt('How should earthquake history affect hydropower site selection on the active river?')">Seismic risk</div>
     </div>
 
     <!-- Messages Container -->
     <div class="drawer-messages" id="aqua-messages">
       <div class="chat-bubble aqua">
-        <h3>🌊 Welcome to Aqua Terminal</h3>
-        I am <strong>Aqua</strong>, your Gemma 4-powered River Eyes hydrology assistant. Ask about:
-        <ul style="margin-left: 16px; margin-top: 6px;">
-          <li>Target power capacity to dam sizing (P = η · ρ · g · Q · H)</li>
-          <li>Soil, foundations and what site investigations are needed</li>
-          <li>River water quality, CPCB standards, and flood stages</li>
-        </ul>
+        Ask about dam sites, river flow, soil conditions, or water quality.
       </div>
     </div>
 
     <!-- Input Box -->
     <div class="drawer-input-box">
-      <input type="text" id="aqua-input" class="drawer-input" placeholder="Ask Aqua a question or enter MW target..." onkeydown="if(event.key==='Enter') submitAquaMessage()" />
-      <button class="btn btn-aqua" onclick="submitAquaMessage()">Send</button>
+      <input type="text" id="aqua-input" class="drawer-input" placeholder="Ask a question..." onkeydown="if(event.key==='Enter') submitAquaMessage()" />
+      <button class="btn btn-primary" onclick="submitAquaMessage()">Send</button>
     </div>
   </aside>
 
@@ -1352,14 +2320,23 @@
 
       // All rivers from HydroRIVERS, as switchable categories under the basemap choice
       const riverOverlays = initRiverNetwork();
-      L.control.layers({ 'Dark': darkBase, 'Satellite': satelliteBase }, riverOverlays, { position: 'topleft', collapsed: false }).addTo(map);
+      const layersControl = L.control.layers({ 'Dark': darkBase, 'Satellite': satelliteBase }, riverOverlays, { position: 'topleft', collapsed: false }).addTo(map);
+      // Keep the map clear: the layer list lives in the sidebar ("Map layers")
+      const layersSlot = document.getElementById('map-layers-slot');
+      if (layersSlot) layersSlot.appendChild(layersControl.getContainer());
 
       // Highlighted rivers of the basin selector, drawn on top
       drawWorldRiverPolylines();
 
       // River picking (hover highlight, click scans) takes over the map while active
       map.on('mousemove', onPickMove);
-      document.addEventListener('keydown', e => { if (e.key === 'Escape' && pickMode) setPickMode(false); });
+      document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') {
+          if (pickMode) setPickMode(false);
+          const drawer = document.getElementById('aqua-drawer');
+          if (drawer && drawer.classList.contains('open')) toggleAqua(false);
+        }
+      });
 
       // Click on the map: choose the site for Site Conditions and Water Quality
       map.on('click', function(e) {
@@ -1374,10 +2351,10 @@
     function initRiverNetwork() {
       const renderer = L.canvas({ padding: 0.5 });
       const CATEGORIES = [
-        { key: 'major', classes: [5, 4], label: 'Major rivers', hint: '≥ 100,000 km²', on: true, style: { color: '#38bdf8', weight: 2.6, opacity: 0.95 } },
-        { key: 'large', classes: [3], label: 'Large rivers', hint: '20,000–100,000 km²', on: true, style: { color: '#38bdf8', weight: 1.5, opacity: 0.75 } },
-        { key: 'medium', classes: [2], label: 'Medium rivers', hint: '2,000–20,000 km²', on: false, style: { color: '#7dd3fc', weight: 0.9, opacity: 0.5 } },
-        { key: 'small', classes: [1], label: 'Small rivers & streams', hint: '< 2,000 km² · India from 100', on: false, style: { color: '#bae6fd', weight: 0.6, opacity: 0.35 } },
+        { key: 'major', classes: [5, 4], label: 'Major', hint: '≥ 100,000 km²', on: true, style: { color: '#38bdf8', weight: 2.6, opacity: 0.95 } },
+        { key: 'large', classes: [3], label: 'Large', hint: '20,000–100,000 km²', on: true, style: { color: '#38bdf8', weight: 1.5, opacity: 0.75 } },
+        { key: 'medium', classes: [2], label: 'Medium', hint: '2,000–20,000 km²', on: false, style: { color: '#7dd3fc', weight: 0.9, opacity: 0.5 } },
+        { key: 'small', classes: [1], label: 'Streams', hint: '< 2,000 km² · India from 100', on: false, style: { color: '#bae6fd', weight: 0.6, opacity: 0.35 } },
       ];
       let saved = null;
       try { saved = JSON.parse(localStorage.getItem('riverCategories') || 'null'); } catch {}
@@ -1386,7 +2363,7 @@
         c.layer = L.layerGroup();
         if (saved ? saved.includes(c.key) : c.on) c.layer.addTo(map);
         const swatch = `<span style="display:inline-block;width:18px;height:0;border-top:${Math.max(1, c.style.weight)}px solid ${c.style.color};opacity:${c.style.opacity};vertical-align:middle;margin:0 6px 2px 2px;"></span>`;
-        overlays[`${swatch}${c.label} <span style="opacity:.55;font-size:10px;">${c.hint}</span>`] = c.layer;
+        overlays[`${swatch}${c.label}`] = c.layer;
       }
 
       let request = 0, timer = null;
@@ -1505,14 +2482,36 @@
       }
     }
 
+    const RIVER_SHORT_CODES = {
+      ganga: 'GAN',
+      yamuna: 'YAM',
+      brahmaputra: 'BRA',
+      indus: 'IND',
+      yangtze: 'YGT',
+      mekong: 'MEK',
+      amazon: 'AMZ',
+      mississippi: 'MIS',
+      nile: 'NIL',
+      congo: 'CON',
+      danube: 'DAN',
+      rhine: 'RHI'
+    };
+
     function switchRiver(riverId) {
       if (!WORLD_RIVERS_REGISTRY[riverId]) return;
       activeRiverId = riverId;
       const r = WORLD_RIVERS_REGISTRY[riverId];
+      const shortName = r.name.split(' (')[0];
 
       document.getElementById('world-river-select').value = riverId;
       const atlasLabel = document.getElementById('atlas-selected-label');
-      if (atlasLabel) atlasLabel.textContent = `Scan the ${r.name.split(' (')[0]}`;
+      if (atlasLabel) atlasLabel.textContent = `Scan the ${shortName}`;
+
+      const railCode = document.getElementById('rail-river-code');
+      if (railCode) railCode.textContent = RIVER_SHORT_CODES[riverId] || shortName.slice(0, 3).toUpperCase();
+      const railName = document.getElementById('rail-river-name');
+      if (railName) railName.textContent = shortName;
+      syncRailQuickAction();
 
       // Update Telemetry HUD
       renderRiverHud(r);
@@ -1536,17 +2535,214 @@
 
     // =========================================================================
     // =========================================================================
+    const SIDEBAR_TAB_META = {
+      planner: { idx: 0, bg: 'rgba(56, 189, 248, 0.14)', border: 'rgba(56, 189, 248, 0.34)' },
+      scan:    { idx: 1, bg: 'rgba(45, 212, 191, 0.14)', border: 'rgba(45, 212, 191, 0.34)' },
+      stats:   { idx: 2, bg: 'rgba(251, 191, 36, 0.14)', border: 'rgba(251, 191, 36, 0.34)' },
+      layers:  { idx: 3, bg: 'rgba(167, 139, 250, 0.14)', border: 'rgba(167, 139, 250, 0.34)' },
+    };
+    let activeSidebarTab = 'planner';
+
+    function syncRailQuickAction() {
+      const quickBtn = document.getElementById('rail-quick-run');
+      const quickTip = document.getElementById('rail-quick-tooltip');
+      if (!quickBtn || !quickTip) return;
+      const r = WORLD_RIVERS_REGISTRY[activeRiverId];
+      const shortName = r ? r.name.split(' (')[0] : 'River';
+      if (activeSidebarTab === 'scan') {
+        quickBtn.classList.add('mode-scan');
+        quickTip.innerHTML = `Scan the ${shortName} <span class="rail-tooltip-sub">Run</span>`;
+      } else {
+        quickBtn.classList.remove('mode-scan');
+        quickTip.innerHTML = `Find dam sites <span class="rail-tooltip-sub">Run</span>`;
+      }
+    }
+
+    function switchSidebarTab(tabKey) {
+      activeSidebarTab = SIDEBAR_TAB_META[tabKey] ? tabKey : 'planner';
+      const meta = SIDEBAR_TAB_META[activeSidebarTab];
+      const tabBar = document.getElementById('sidebar-tabs');
+      if (tabBar) {
+        tabBar.style.setProperty('--active-tab-idx', meta.idx);
+        tabBar.style.setProperty('--glider-bg', meta.bg);
+        tabBar.style.setProperty('--glider-border', meta.border);
+      }
+      const railTabs = document.getElementById('rail-tabs');
+      if (railTabs) {
+        railTabs.style.setProperty('--active-tab-idx', meta.idx);
+        railTabs.style.setProperty('--glider-bg', meta.bg);
+        railTabs.style.setProperty('--glider-border', meta.border);
+      }
+      document.querySelectorAll('.sidebar-tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.sideTab === activeSidebarTab);
+      });
+      document.querySelectorAll('.rail-tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.railTab === activeSidebarTab);
+      });
+      document.querySelectorAll('.sidebar-pane').forEach(pane => {
+        pane.classList.toggle('active', pane.dataset.sidePane === activeSidebarTab);
+      });
+      syncRailQuickAction();
+    }
+
+    function toggleSidebar(forceCollapse) {
+      const nav = document.getElementById('sidebar-nav');
+      if (!nav) return;
+      const shouldCollapse = typeof forceCollapse === 'boolean'
+        ? forceCollapse
+        : !nav.classList.contains('collapsed');
+      nav.classList.toggle('collapsed', shouldCollapse);
+
+      const appContainer = nav.closest('.app-container');
+      if (appContainer) {
+        appContainer.classList.toggle('sidebar-collapsed', shouldCollapse);
+      }
+
+      const handle = document.getElementById('sidebar-edge-handle');
+      if (handle) {
+        handle.setAttribute('aria-expanded', String(!shouldCollapse));
+        handle.title = shouldCollapse ? 'Expand sidebar ([)' : 'Collapse sidebar ([)';
+      }
+    }
+
+    function openRiverSelectFromRail() {
+      toggleSidebar(false);
+      setTimeout(() => {
+        const sel = document.getElementById('world-river-select');
+        if (sel) sel.focus();
+      }, 240);
+    }
+
+    function selectRailTab(tabKey) {
+      switchSidebarTab(tabKey);
+      toggleSidebar(false);
+    }
+
+    function triggerRailQuickAction() {
+      if (activeSidebarTab === 'scan') {
+        runRiverAtlas('selected');
+      } else {
+        runCityPlan();
+      }
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === '[' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        const tag = (e.target && e.target.tagName) ? e.target.tagName.toUpperCase() : '';
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (e.target && e.target.isContentEditable)) return;
+        e.preventDefault();
+        toggleSidebar();
+      }
+    });
+
+    function bindSmoothSlider(sliderId, inputId, wrapId) {
+      const slider = document.getElementById(sliderId);
+      const input = document.getElementById(inputId);
+      const wrap = document.getElementById(wrapId);
+      if (!slider || !input) return;
+
+      const min = parseFloat(slider.min) || 0;
+      const max = parseFloat(slider.max) || 100;
+      let currentVal = parseFloat(slider.value) || min;
+      let targetVal = currentVal;
+      let rafId = null;
+      let releaseTimer = null;
+
+      const updateFill = (val) => {
+        const pct = Math.max(0, Math.min(100, ((val - min) / (max - min)) * 100));
+        slider.style.setProperty('--fill-pct', `${pct.toFixed(2)}%`);
+      };
+
+      const stepLerp = () => {
+        const diff = targetVal - currentVal;
+        if (Math.abs(diff) < 0.35) {
+          currentVal = targetVal;
+          updateFill(currentVal);
+          slider.value = Math.round(currentVal);
+          if (document.activeElement !== input) {
+            input.value = Math.round(currentVal);
+          }
+          rafId = null;
+          return;
+        }
+        currentVal += diff * 0.28;
+        updateFill(currentVal);
+        slider.value = Math.round(currentVal);
+        if (document.activeElement !== input) {
+          input.value = Math.round(currentVal);
+        }
+        rafId = requestAnimationFrame(stepLerp);
+      };
+
+      updateFill(currentVal);
+      input.value = Math.round(currentVal);
+
+      // Slider scrub
+      slider.addEventListener('input', () => {
+        targetVal = parseFloat(slider.value);
+        if (wrap) wrap.classList.add('sliding');
+        clearTimeout(releaseTimer);
+        releaseTimer = setTimeout(() => { if (wrap) wrap.classList.remove('sliding'); }, 180);
+        if (!rafId) rafId = requestAnimationFrame(stepLerp);
+      });
+
+      // Typing directly into the value badge
+      input.addEventListener('focus', () => {
+        input.select();
+      });
+
+      input.addEventListener('input', () => {
+        const raw = input.value.trim();
+        if (raw === '') return;
+        const parsed = parseFloat(raw);
+        if (!isNaN(parsed)) {
+          const clamped = Math.max(min, Math.min(max, parsed));
+          targetVal = clamped;
+          slider.value = clamped;
+          updateFill(clamped);
+          currentVal = clamped;
+          if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+        }
+      });
+
+      input.addEventListener('blur', () => {
+        let parsed = parseFloat(input.value);
+        if (isNaN(parsed)) parsed = min;
+        const clamped = Math.max(min, Math.min(max, parsed));
+        input.value = clamped;
+        targetVal = clamped;
+        currentVal = clamped;
+        slider.value = clamped;
+        updateFill(clamped);
+      });
+
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          input.blur();
+        }
+      });
+    }
+
     function openDamPlannerTab() {
-      const input = document.getElementById('plan-city');
-      input.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      input.focus();
-      input.select();
+      toggleSidebar(false);
+      switchSidebarTab('planner');
+      setTimeout(() => {
+        const input = document.getElementById('plan-city');
+        if (input) {
+          input.focus();
+          input.select();
+        }
+      }, 180);
     }
 
     function switchTab(tabId) {
       document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
       const navItem = document.getElementById('nav-' + tabId);
       if (navItem) navItem.classList.add('active');
+
+      document.querySelectorAll('.rail-tool-btn').forEach(el => el.classList.remove('active'));
+      const railNavItem = document.getElementById('rail-nav-' + tabId);
+      if (railNavItem) railNavItem.classList.add('active');
 
       // Close all panels
       closePanel('dam-planner-panel');
@@ -1572,11 +2768,18 @@
     // River-wide numbers: HydroRIVERS trace when available (else the registry's published figures).
     function renderRiverHud(r) {
       const t = r.traced;
-      document.getElementById('hud-length').textContent = t
-        ? `${t.lengthKm.toLocaleString()} km traced`
-        : r.lengthKm.toLocaleString() + ' km';
-      document.getElementById('hud-discharge').textContent = (t ? t.endDischargeCms : r.dischargeCumecs).toLocaleString() + ' m³/s';
+      const lenStr = (t ? t.lengthKm : r.lengthKm).toLocaleString() + ' km';
+      const flowStr = (t ? t.endDischargeCms : r.dischargeCumecs).toLocaleString() + ' m³/s';
+      document.getElementById('hud-length').textContent = t ? `${lenStr} traced` : lenStr;
+      document.getElementById('hud-discharge').textContent = flowStr;
       document.getElementById('hud-catchment').textContent = (t ? t.endUplandKm2 : r.catchmentSqKm).toLocaleString() + ' km²';
+
+      const scanName = document.getElementById('scan-card-name');
+      const scanLen = document.getElementById('scan-card-length');
+      const scanFlow = document.getElementById('scan-card-flow');
+      if (scanName) scanName.textContent = r.name;
+      if (scanLen) scanLen.textContent = lenStr;
+      if (scanFlow) scanFlow.textContent = flowStr;
     }
 
     // A representative point ON the river: middle of the traced channel (centerCoords is only a map
@@ -1596,7 +2799,7 @@
       const id = ++siteRequest;
       const body = document.getElementById('geotech-panel-body');
       ['hud-health', 'hud-bearing', 'hud-seismic'].forEach(k => { document.getElementById(k).textContent = '…'; });
-      body.innerHTML = `<div style="color:var(--text-muted);font-size:12px;">Loading soil, earthquake and river-flow data for ${escapeHtml(label)}…<br/><span style="color:var(--text-dim)">SoilGrids can take ~20 s.</span></div>`;
+      body.innerHTML = `<div style="color:var(--text-muted);font-size:13px;">Loading site data for ${escapeHtml(label)}…</div>`;
       let d;
       try {
         const res = await fetch('/api/v1/site', {
@@ -1607,7 +2810,7 @@
       } catch (err) {
         if (id !== siteRequest) return;
         ['hud-health', 'hud-bearing', 'hud-seismic'].forEach(k => { document.getElementById(k).textContent = 'n/a'; });
-        body.innerHTML = `<div style="color:#fca5a5;font-size:12px;">Site data unavailable: ${escapeHtml(err.message)}. Try again in a moment.</div>`;
+        body.innerHTML = `<div style="color:#fca5a5;font-size:13px;">Site data unavailable: ${escapeHtml(err.message)}.</div>`;
         return;
       }
       if (id !== siteRequest) return; // a newer click won
@@ -1618,60 +2821,48 @@
       document.getElementById('hud-bearing').textContent = s?.hasData ? (s.textureClass || s.wrbGroup || 'see panel') : 'no data';
       document.getElementById('hud-seismic').textContent = q ? (q.count ? `${q.count} (max M${q.strongest[0].magnitude})` : 'none') : 'n/a';
 
-      const row = (k, v) => `<tr><td style="color:var(--text-dim);padding:3px 8px 3px 0;">${k}</td><td style="text-align:right;font-family:var(--font-mono);color:#fff;">${v}</td></tr>`;
+      const row = (k, v) => `<tr><td style="color:var(--text-muted);padding:5px 8px 5px 0;">${k}</td><td style="text-align:right;font-family:var(--font-mono);color:#fff;">${v}</td></tr>`;
       const fmt = (v, u = '') => (v === null || v === undefined ? '—' : `${Number(v).toLocaleString()}${u}`);
 
       body.innerHTML = `
-        <div style="background: var(--bg-deep); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
-          <div style="font-size: 11px; text-transform: uppercase; color: var(--text-dim); font-weight: 700;">Site</div>
-          <div style="font-size: 14px; font-weight: 700; color: #ffffff; margin-top: 2px;">${escapeHtml(label)}</div>
-          <div style="font-size: 11px; color: var(--text-muted);">${d.river ? `Snapped to river ${d.river.distanceFromClickKm} km away · ${fmt(d.river.distanceToMouthKm, ' km')} to the sea` : 'No major river within 30 km'}</div>
+        <div style="background: var(--bg-deep); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 12px; margin-bottom: 14px;">
+          <div style="font-size: 15px; font-weight: 700; color: #ffffff;">${escapeHtml(label)}</div>
+          <div style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">${d.river ? `${d.river.distanceFromClickKm} km from river · ${fmt(d.river.distanceToMouthKm, ' km')} to mouth` : 'No major river within 30 km'}</div>
         </div>
 
-        <strong style="color:#fff;font-size:11px;">🌊 River flow</strong>
-        <table style="width:100%;font-size:12px;margin:4px 0 12px;">
-          ${row('Long-term mean (HydroRIVERS)', fmt(d.river?.meanDischargeCms, ' m³/s'))}
-          ${f && f.matchQuality === 'poor' ? row('GloFAS forecast', 'uncertain: its ~5 km grid cell here may be a side stream') : ''}
-          ${f ? row('Today (GloFAS)', `${fmt(f.todayCms, ' m³/s')} · ${fmt(f.percentOfNormal, '%')} of normal for the season`) + row('14-day forecast peak', `${fmt(f.forecastPeakCms, ' m³/s')} (${fmt(f.peakVs2yrFlood)}× 2-yr flood)`) : row('GloFAS forecast', 'unavailable')}
+        <strong style="color:#fff;font-size:14px;">River flow</strong>
+        <table style="width:100%;font-size:13px;margin:6px 0 14px;">
+          ${row('Mean flow', fmt(d.river?.meanDischargeCms, ' m³/s'))}
+          ${f ? row('Current flow', `${fmt(f.todayCms, ' m³/s')} (${fmt(f.percentOfNormal, '%')} of normal)`) + row('14-day peak', `${fmt(f.forecastPeakCms, ' m³/s')}`) : row('Forecast', 'unavailable')}
         </table>
 
-        <strong style="color:#fff;font-size:11px;">🧱 Soil, top 30 cm (SoilGrids)</strong>
-        <table style="width:100%;font-size:12px;margin:4px 0 12px;">
+        <strong style="color:#fff;font-size:14px;">Soil (top 30 cm)</strong>
+        <table style="width:100%;font-size:13px;margin:6px 0 14px;">
           ${s?.hasData ? `
-            ${s.textureClass ? row('Texture (USDA)', escapeHtml(s.textureClass)) : ''}
-            ${s.wrbGroup ? row('Soil group (WRB)', escapeHtml(s.wrbGroup)) : ''}
+            ${s.textureClass ? row('Texture', escapeHtml(s.textureClass)) : ''}
+            ${s.wrbGroup ? row('Group', escapeHtml(s.wrbGroup)) : ''}
             ${s.pH != null ? row('pH', fmt(s.pH)) : ''}
-            ${s.distanceKm ? row('Nearest soil data', `${fmt(s.distanceKm, ' km')} away (site is water/urban)`) : ''}
             ${row('Clay / silt / sand', `${fmt(s.clayPct)} / ${fmt(s.siltPct)} / ${fmt(s.sandPct)} %`)}
-            ${row('Stones (coarse fragments)', fmt(s.coarseFragmentsPct, ' vol%'))}
-            ${row('Bulk density', fmt(s.bulkDensity, ' kg/dm³'))}
-            ${row('Organic carbon', fmt(s.organicCarbonGkg, ' g/kg'))}`
-          : row('Soil data', 'none at this point (water, rock, ice or urban)')}
+            ${row('Coarse fragments', fmt(s.coarseFragmentsPct, ' %'))}
+            ${row('Bulk density', fmt(s.bulkDensity, ' kg/dm³'))}`
+          : row('Soil data', 'none at this point')}
         </table>
 
-        <strong style="color:#fff;font-size:11px;">⚠️ Earthquakes M5+ within 150 km since 1970 (USGS)</strong>
-        ${q ? `<div style="font-size:12px;color:var(--text-muted);margin:4px 0;">${q.count} events. Strongest:</div>
-          <ul style="margin:0 0 12px;padding-left:16px;font-size:11px;color:var(--text-muted);">${q.strongest.map(e => `<li><b style="color:#fff;">M${e.magnitude}</b> ${escapeHtml(e.place)} (${e.date})</li>`).join('')}</ul>`
-          : '<div style="font-size:12px;color:var(--text-muted);margin:4px 0 12px;">Unavailable right now.</div>'}
-
-        <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 6px; padding: 10px; font-size: 11px; color: #fde68a;">
-          <strong>Not available from global data:</strong>
-          <ul style="margin:4px 0 0;padding-left:16px;">${d.notAvailable.map(x => `<li>${escapeHtml(x)}</li>`).join('')}</ul>
-        </div>
-        <div style="margin-top:8px;font-size:10px;color:var(--text-dim);">${d.sources.map(escapeHtml).join(' · ')}</div>`;
+        <strong style="color:#fff;font-size:14px;">Earthquakes (M5+ within 150 km)</strong>
+        ${q ? `<div style="font-size:13px;color:var(--text-muted);margin:6px 0;">${q.count} events recorded:</div>
+          <ul style="margin:0;padding-left:18px;font-size:13px;color:var(--text-muted);">${q.strongest.map(e => `<li><b style="color:#fff;">M${e.magnitude}</b> ${escapeHtml(e.place)} (${e.date})</li>`).join('')}</ul>`
+          : '<div style="font-size:13px;color:var(--text-muted);margin:6px 0;">Unavailable right now.</div>'}`;
     }
 
     // =========================================================================
     // WATER QUALITY (Sentinel-2) — server: /api/v1/water-quality (water.js)
-    // Turbidity (Dogliotti 2015) and chlorophyll index (NDCI) of the water at the selected point,
-    // from the newest cloud-free Sentinel-2 images; Gemma 4 reads the satellite image.
     // =========================================================================
     let selectedSite = null; // { lat, lon, label } — set by map clicks and river selection
 
     function showWaterSelection() {
       const el = document.getElementById('water-selected');
       if (el) el.innerHTML = selectedSite
-        ? `📍 <b>${escapeHtml(selectedSite.label)}</b>${/-?\d+\.\d+,\s*-?\d+\.\d+/.test(selectedSite.label) ? '' : ` (${selectedSite.lat.toFixed(3)}, ${selectedSite.lon.toFixed(3)})`}<br/><span style="color:var(--text-dim)">Click any river or lake on the map to choose another place.</span>`
+        ? `<b style="color:#f8fafc;">${escapeHtml(selectedSite.label)}</b>${/-?\d+\.\d+,\s*-?\d+\.\d+/.test(selectedSite.label) ? '' : ` (${selectedSite.lat.toFixed(3)}, ${selectedSite.lon.toFixed(3)})`}`
         : 'Click a river or lake on the map first.';
     }
 
@@ -1680,7 +2871,7 @@
       const out = document.getElementById('water-results');
       const btn = document.getElementById('water-run');
       btn.disabled = true;
-      out.innerHTML = `<div style="font-size:12px;color:var(--text-muted);padding:8px 0;">🛰️ Finding the newest cloud-free Sentinel-2 images and measuring the water… (~20–40 s)</div>`;
+      out.innerHTML = `<div style="font-size:13px;color:var(--text-muted);padding:8px 0;">Checking recent satellite imagery…</div>`;
       let r, error;
       try {
         const res = await fetch('/api/v1/water-quality', {
@@ -1694,7 +2885,7 @@
       }
       btn.disabled = false;
       if (error) {
-        out.innerHTML = `<div style="border:1px solid rgba(248,113,113,.4);background:rgba(248,113,113,.08);border-radius:8px;padding:10px;font-size:12px;color:#fca5a5;">${escapeHtml(error)}</div>`;
+        out.innerHTML = `<div style="border:1px solid rgba(248,113,113,.4);background:rgba(248,113,113,.08);border-radius:8px;padding:10px;font-size:13px;color:#fca5a5;">${escapeHtml(error)}</div>`;
         return;
       }
       renderWaterQuality(r);
@@ -1705,12 +2896,8 @@
       const fnu = v => (v.turbiditySaturated ? '≥ 1,000' : v.turbidityFnu.toLocaleString());
       const turbColour = v => (v.turbidityFnu < 10 ? '#34d399' : v.turbidityFnu < 50 ? '#a3e635' : v.turbidityFnu < 150 ? '#fbbf24' : v.turbidityFnu < 500 ? '#fb923c' : '#f87171');
       const chlColour = v => (v.ndci < 0 ? '#34d399' : v.ndci < 0.1 ? '#a3e635' : v.ndci < 0.2 ? '#fbbf24' : '#f87171');
-      const conf = { good: ['#34d399', 'good: plenty of open water measured'], fair: ['#fbbf24', 'fair: limited open water'], low: ['#f87171', 'low: narrow river, pixels mix water and riverbank'] }[L0.confidence];
-      const list = items => `<ul style="margin:4px 0 0;padding-left:16px;font-size:11px;color:var(--text-muted);">${items.map(x => `<li>${escapeHtml(x)}</li>`).join('')}</ul>`;
+      const list = items => `<ul style="margin:4px 0 0;padding-left:18px;font-size:13px;color:var(--text-muted);">${items.map(x => `<li>${escapeHtml(x)}</li>`).join('')}</ul>`;
       const ai = r.reading;
-      const aiTag = !ai ? ''
-        : ai.source === 'gemma' ? `<span style="color:#38bdf8;">✦ Gemma 4 reading (${escapeHtml(ai.model)}) of the satellite image</span>`
-        : '<span style="color:#94a3b8;">✦ AI reading of the satellite image</span>';
 
       // show the analysed box on the map
       if (window.waterBoxLayer) map.removeLayer(window.waterBoxLayer);
@@ -1719,39 +2906,32 @@
         .bindTooltip('Area measured for water quality').addTo(map);
 
       document.getElementById('water-results').innerHTML = `
-        <img src="${escapeHtml(L0.imageUrl)}" alt="Sentinel-2 true-colour image of the measured area" loading="lazy"
+        <img src="${escapeHtml(L0.imageUrl)}" alt="Satellite image of the measured area" loading="lazy"
              style="width:100%;border-radius:8px;border:1px solid var(--border-subtle);margin-top:4px;aspect-ratio:1;object-fit:cover;background:#0b1220;" />
-        <div style="font-size:10px;color:var(--text-dim);margin:4px 0 8px;">Sentinel-2 · ${L0.date} · ${L0.waterAreaHa} ha of open water measured · confidence <b style="color:${conf[0]}">${conf[1]}</b></div>
+        <div style="font-size:12px;color:var(--text-dim);margin:6px 0 10px;">${L0.date} · ${L0.waterAreaHa} ha measured</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-          <div style="background:var(--bg-elevated);border:1px solid var(--border-subtle);border-radius:8px;padding:8px 10px;">
-            <div style="font-size:10px;color:var(--text-dim);text-transform:uppercase;">Turbidity</div>
-            <div style="font-size:18px;font-weight:800;color:${turbColour(L0)};font-family:var(--font-mono);">${fnu(L0)} <span style="font-size:11px;">FNU</span></div>
-            <div style="font-size:11px;color:var(--text-muted);">${escapeHtml(L0.turbidityClass)}</div>
+          <div style="background:var(--bg-elevated);border:1px solid var(--border-subtle);border-radius:8px;padding:10px 12px;">
+            <div style="font-size:12px;color:var(--text-dim);">Turbidity</div>
+            <div style="font-size:18px;font-weight:700;color:${turbColour(L0)};font-family:var(--font-mono);margin-top:2px;">${fnu(L0)} <span style="font-size:12px;">FNU</span></div>
+            <div style="font-size:13px;color:var(--text-muted);">${escapeHtml(L0.turbidityClass)}</div>
           </div>
-          <div style="background:var(--bg-elevated);border:1px solid var(--border-subtle);border-radius:8px;padding:8px 10px;">
-            <div style="font-size:10px;color:var(--text-dim);text-transform:uppercase;">Chlorophyll (NDCI)</div>
-            <div style="font-size:18px;font-weight:800;color:${chlColour(L0)};font-family:var(--font-mono);">${L0.ndci}</div>
-            <div style="font-size:11px;color:var(--text-muted);">${escapeHtml(L0.chlorophyllClass)}</div>
+          <div style="background:var(--bg-elevated);border:1px solid var(--border-subtle);border-radius:8px;padding:10px 12px;">
+            <div style="font-size:12px;color:var(--text-dim);">Chlorophyll</div>
+            <div style="font-size:18px;font-weight:700;color:${chlColour(L0)};font-family:var(--font-mono);margin-top:2px;">${L0.ndci}</div>
+            <div style="font-size:13px;color:var(--text-muted);">${escapeHtml(L0.chlorophyllClass)}</div>
           </div>
         </div>
-        <strong style="display:block;color:#fff;font-size:11px;margin-top:10px;">Recent clear images</strong>
-        <table style="width:100%;font-size:11px;margin-top:4px;border-collapse:collapse;">
-          ${r.trend.map(t => `<tr style="border-bottom:1px solid var(--border-subtle);"><td style="padding:3px 0;color:var(--text-muted);">${t.date}</td>
+        <strong style="display:block;color:#fff;font-size:14px;margin-top:14px;">Recent readings</strong>
+        <table style="width:100%;font-size:13px;margin-top:6px;border-collapse:collapse;">
+          ${r.trend.map(t => `<tr style="border-bottom:1px solid var(--border-subtle);"><td style="padding:5px 0;color:var(--text-muted);">${t.date}</td>
             <td style="text-align:right;font-family:var(--font-mono);color:${turbColour(t)};">${fnu(t)} FNU</td>
             <td style="text-align:right;font-family:var(--font-mono);color:${chlColour(t)};">NDCI ${t.ndci}</td></tr>`).join('')}
         </table>
-        <div style="margin-top:10px;padding:8px 10px;border:1px solid var(--border-subtle);border-radius:8px;font-size:11px;${ai ? '' : 'display:none;'}">
-          ${aiTag}
-          ${ai ? `<div style="color:#fff;margin-top:4px;">${escapeHtml(ai.summary)}</div>
-            <div style="margin-top:4px;color:var(--text-dim);">Seen in the image:</div>${list(ai.image_observations)}
-            <div style="margin-top:4px;color:var(--text-dim);">Possible causes:</div>${list(ai.likely_causes)}
-            <div style="margin-top:4px;color:var(--text-dim);">Next steps:</div>${list(ai.advice)}` : ''}
-        </div>
-        <div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:6px;padding:8px 10px;font-size:11px;color:#fde68a;margin-top:10px;">
-          <b>Satellites see colour, not chemistry.</b> Not measured here: ${r.notMeasured.map(escapeHtml).join(', ')}. These need water samples.
-        </div>
-        <details style="margin-top:6px;font-size:11px;color:var(--text-muted);"><summary style="cursor:pointer;">Method</summary>${list(r.method)}</details>
-        <div style="margin-top:6px;font-size:10px;color:var(--text-dim);">${r.sources.map(escapeHtml).join(' · ')} · ${(r.tookMs / 1000).toFixed(0)} s</div>`;
+        <div style="margin-top:12px;padding:10px 12px;border:1px solid var(--border-subtle);border-radius:8px;font-size:13px;${ai ? '' : 'display:none;'}">
+          ${ai ? `<div style="color:#fff;">${escapeHtml(ai.summary)}</div>
+            <div style="margin-top:8px;color:var(--text-dim);">Observations:</div>${list(ai.image_observations)}
+            <div style="margin-top:8px;color:var(--text-dim);">Possible causes:</div>${list(ai.likely_causes)}` : ''}
+        </div>`;
     }
 
     // =========================================================================
@@ -1765,7 +2945,7 @@
       pickMode = on;
       document.getElementById('map-container').classList.toggle('picking-river', on);
       const btn = document.getElementById('pick-river-btn');
-      if (btn) btn.innerHTML = on ? '✖ Cancel picking (Esc)' : '🖱️ Pick a river on the map';
+      if (btn) btn.innerHTML = on ? 'Cancel picking (Esc)' : 'Pick a river on the map';
       document.getElementById('pick-river-hint').style.display = on ? 'block' : 'none';
       if (!on) clearPickHighlight();
     }
@@ -1800,7 +2980,7 @@
         L.polyline(data.path, { color: '#fde047', weight: 11, opacity: 0.25, interactive: false }).addTo(pickLayer);
         L.polyline(data.path, { color: '#fde047', weight: 4, opacity: 0.95, interactive: false }).addTo(pickLayer);
         document.getElementById('pick-river-hint').innerHTML =
-          `<b style="color:#fde047;">Highlighted river: ${data.river.lengthKm.toLocaleString()} km</b>, ${data.river.mouthDischargeCms.toLocaleString()} m³/s at its mouth.<br/>Click to find every dam site along it.`;
+          `<b style="color:#fde047;">${data.river.lengthKm.toLocaleString()} km river</b> (${data.river.mouthDischargeCms.toLocaleString()} m³/s). Click to scan.`;
       } catch {
         // network hiccup while hovering: ignore, the next move retries
       }
@@ -1827,7 +3007,6 @@
     // RIVER DAM ATLAS — server: /api/v1/dam/atlas (dam.js atlas())
     // Every feasible site along a whole river, marked with a dam icon.
     // =========================================================================
-    // Unicode has no dam emoji: a small dam (concrete wall holding back water) drawn as SVG.
     const DAM_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">' +
       '<rect x="1" y="7" width="9" height="13" rx="1" fill="#0ea5e9"/><path d="M1 10q2-1.5 4 0t4 0" stroke="#e0f2fe" stroke-width="1.2" fill="none"/>' +
       '<path d="M9 4h5l8 16H9z" fill="#cbd5e1" stroke="#0f172a" stroke-width="1.2" stroke-linejoin="round"/>' +
@@ -1856,13 +3035,13 @@
         title = `river at ${lat.toFixed(2)}, ${lon.toFixed(2)}`;
       }
       const steps = [
-        `Tracing the whole ${title} from source to mouth (HydroRIVERS)…`,
-        'Cutting the river into ~30 km sections and pre-screening each one…',
-        'Analysing the most promising sections: river bed, head, flow, weir sites…',
-        'Checking topsoil (SoilGrids) and earthquake history (USGS) at each site…',
-        'Keeping every site that can coexist and grouping them into regions…',
+        `Tracing ${title} from source to mouth…`,
+        'Dividing the river into sections…',
+        'Measuring elevation drop, flow, and weir sites…',
+        'Checking soil and earthquake records…',
+        'Ranking feasible sites…',
       ];
-      const { data, error } = await withAnalyser(`Dam atlas · ${title}`, steps, () =>
+      const { data, error } = await withAnalyser(title, steps, () =>
         fetch('/api/v1/dam/atlas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }));
       renderRiverAtlas(data, error);
     }
@@ -1872,11 +3051,11 @@
       const resultsDiv = document.getElementById('dam-plan-results');
       panel.style.display = 'flex';
       resultsDiv.style.display = 'block';
-      document.getElementById('dam-panel-title').textContent = 'River Dam Atlas';
+      document.getElementById('dam-panel-title').textContent = 'River Dam Sites';
       if (damLayer) { map.removeLayer(damLayer); damLayer = null; }
       damMarkers = [];
       if (error) {
-        resultsDiv.innerHTML = `<div style="border:1px solid rgba(248,113,113,.4);background:rgba(248,113,113,.08);border-radius:8px;padding:10px;font-size:12px;color:#fca5a5;">${escapeHtml(error)}</div>`;
+        resultsDiv.innerHTML = `<div style="border:1px solid rgba(248,113,113,.4);background:rgba(248,113,113,.08);border-radius:8px;padding:10px;font-size:13px;color:#fca5a5;">${escapeHtml(error)}</div>`;
         return;
       }
       damLayer = L.layerGroup().addTo(map);
@@ -1885,10 +3064,9 @@
         L.polyline(d.route, { color: '#38bdf8', weight: 4, opacity: 0.9, interactive: false }).addTo(damLayer);
         const m = L.marker(d.intake, { icon: damIcon(24), riseOnHover: true })
           .bindTooltip(`<b>Site ${d.rank}</b> · ${d.mw} MW · head ${d.headM} m`, { direction: 'top', offset: [0, -10] })
-          .bindPopup(`<div style="font-size:12px;color:#0f172a;"><strong style="color:#0284c7;">Site ${d.rank}: ${d.mw} MW</strong> (score ${d.score})<br/>
-            km ${d.kmFromSource} from source · head ${d.headM} m over ${d.diversionKm} km · flow ${d.flowCms} m³/s<br/>
-            Weir crest ≈ ${d.weirCrestM} m · ${d.soil ? `soil ${d.soil.textureClass}` : 'soil n/a'} · ${d.quakesM5Within50km === null ? 'quakes n/a' : `${d.quakesM5Within50km} M5+ quakes ≤50 km`}<br/>
-            <span style="font-family:monospace">${d.intake[0].toFixed(5)}, ${d.intake[1].toFixed(5)}</span></div>`)
+          .bindPopup(`<div style="font-size:13px;color:#0f172a;"><strong style="color:#0284c7;">Site ${d.rank}: ${d.mw} MW</strong><br/>
+            km ${d.kmFromSource} · head ${d.headM} m · flow ${d.flowCms} m³/s<br/>
+            Weir crest ≈ ${d.weirCrestM} m · ${d.soil ? `soil ${d.soil.textureClass}` : 'soil n/a'}</div>`)
           .addTo(damLayer);
         damMarkers.push(m);
       });
@@ -1897,35 +3075,21 @@
       const f = r.feasible;
       const rows = r.sites.map(d => `
         <div class="atlas-row" onclick="map.flyTo([${d.intake[0]}, ${d.intake[1]}], 12); damMarkers[${d.rank - 1}].openPopup();"
-             style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;font-size:11px;border-bottom:1px solid var(--border-subtle);">
+             style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:6px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border-subtle);">
           <span style="width:20px;height:20px;flex:none;">${DAM_SVG.replace(/width="24" height="24"/, 'width="20" height="20"')}</span>
-          <span style="flex:1;color:var(--text-muted);"><b style="color:#fff;">Site ${d.rank}</b> · km ${d.kmFromSource} · head ${d.headM} m · crest ${d.weirCrestM} m</span>
-          <span style="font-family:var(--font-mono);color:#38bdf8;">${d.mw} MW</span>
+          <span style="flex:1;color:var(--text-muted);"><b style="color:#fff;">Site ${d.rank}</b> · km ${d.kmFromSource} · head ${d.headM} m</span>
+          <span style="font-family:var(--font-mono);font-weight:600;color:#38bdf8;">${d.mw} MW</span>
         </div>`).join('');
-      const listHtml = items => `<ul style="margin:4px 0 0;padding-left:16px;font-size:11px;color:var(--text-muted);">${items.map(x => `<li>${escapeHtml(x)}</li>`).join('')}</ul>`;
       resultsDiv.innerHTML = `
-        <div style="background:${f.sites ? 'rgba(16,185,129,.15)' : 'rgba(251,191,36,.1)'};border:1px solid ${f.sites ? 'rgba(16,185,129,.4)' : 'rgba(251,191,36,.4)'};border-radius:8px;padding:10px;">
-          <div style="font-size:11px;font-weight:700;color:${f.sites ? '#34d399' : '#fbbf24'};text-transform:uppercase;">${escapeHtml(r.river.name)} · ${r.river.lengthKm.toLocaleString()} km</div>
-          <div style="font-size:14px;font-weight:800;color:#fff;margin-top:2px;">${f.complete ? '' : 'At least '}${f.sites} feasible dam site${f.sites === 1 ? '' : 's'} in ${f.regions} region${f.regions === 1 ? '' : 's'}</div>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">
-            Together ≈ <b>${f.totalMw.toLocaleString()} MW</b> potential · ${r.sections.analysed} of ${r.sections.promising} promising sections analysed in detail (${r.sections.total} sections in total) · ${(r.tookMs / 1000).toFixed(0)} s
-            ${f.complete ? '' : `<br/>${f.unverifiedSections} more promising section${f.unverifiedSections === 1 ? '' : 's'} not analysed: the real total is higher.`}
-          </div>
+        <div style="background:${f.sites ? 'rgba(16,185,129,.15)' : 'rgba(251,191,36,.1)'};border:1px solid ${f.sites ? 'rgba(16,185,129,.4)' : 'rgba(251,191,36,.4)'};border-radius:8px;padding:12px;">
+          <div style="font-size:12px;font-weight:600;color:${f.sites ? '#34d399' : '#fbbf24'};">${escapeHtml(r.river.name)} · ${r.river.lengthKm.toLocaleString()} km</div>
+          <div style="font-size:15px;font-weight:700;color:#fff;margin-top:2px;">${f.sites} dam site${f.sites === 1 ? '' : 's'} (${f.totalMw.toLocaleString()} MW total)</div>
         </div>
-        <div style="margin-top:8px;max-height:46vh;overflow:auto;">${rows || '<div style="font-size:12px;color:var(--text-muted);padding:8px;">No section of this river passed all checks (enough drop, a narrow enough valley, plausible elevation data).</div>'}</div>
-        <details style="margin-top:10px;font-size:11px;color:var(--text-muted);">
-          <summary style="cursor:pointer;color:#fbbf24;">⚠ Not evaluated (${r.notEvaluated.length})</summary>${listHtml(r.notEvaluated)}
-        </details>
-        <details style="margin-top:6px;font-size:11px;color:var(--text-muted);">
-          <summary style="cursor:pointer;">Method &amp; assumptions</summary>${listHtml(r.assumptions)}
-        </details>
-        <div style="margin-top:6px;font-size:10px;color:var(--text-dim);">${(r.sources || []).map(escapeHtml).join(' · ')}</div>`;
+        <div style="margin-top:8px;max-height:54vh;overflow:auto;">${rows || '<div style="font-size:13px;color:var(--text-muted);padding:8px;">No suitable sites found along this river.</div>'}</div>`;
     }
 
     // =========================================================================
     // CITY POWER PLANNER — server: /api/v1/dam/plan (dam.js plan())
-    // A city needs X MW: scan rivers within the radius, analyse the best stretches and
-    // rank weir sites on power, gorge, distance to the city, soil and earthquake history.
     // =========================================================================
     async function findPlanCity() {
       const q = document.getElementById('plan-city').value.trim();
@@ -1940,11 +3104,11 @@
         document.getElementById('target-lat').value = lat.toFixed(4);
         document.getElementById('target-lon').value = lon.toFixed(4);
         document.getElementById('target-location-name').value = q;
-        found.textContent = `📍 ${hit.display_name.split(',').slice(0, 3).join(',')} (${lat.toFixed(2)}, ${lon.toFixed(2)})`;
+        found.textContent = `${hit.display_name.split(',').slice(0, 3).join(',')}`;
         if (map) map.flyTo([lat, lon], 7, { duration: 1 });
         return true;
       } catch {
-        found.textContent = 'City search is unavailable. Click the map to pick the place instead.';
+        found.textContent = 'City search unavailable.';
         return false;
       }
     }
@@ -1958,16 +3122,16 @@
       const city = document.getElementById('target-location-name').value;
       const lat = parseFloat(document.getElementById('target-lat').value);
       const lon = parseFloat(document.getElementById('target-lon').value);
-      const targetMw = parseInt(document.getElementById('mw-slider').value, 10);
-      const radiusKm = parseInt(document.getElementById('plan-radius').value, 10);
+      const targetMw = parseInt(document.getElementById('mw-input')?.value || document.getElementById('mw-slider').value, 10);
+      const radiusKm = parseInt(document.getElementById('plan-radius-input')?.value || document.getElementById('plan-radius').value, 10);
       const rankBy = document.querySelector('input[name="plan-rank"]:checked')?.value || 'best';
 
       const steps = [
-        `Scanning every major river within ${radiusKm} km of ${city} (HydroRIVERS)…`,
-        'Pre-screening river drops for hydropower potential (elevation model)…',
-        'Analysing the best stretches: river bed, head, flow and weir sites…',
-        'Checking topsoil (SoilGrids) and earthquake history (USGS) at each site…',
-        `Scoring sites and choosing the best mix to supply ${targetMw} MW…`,
+        `Finding rivers within ${radiusKm} km of ${city}…`,
+        'Screening river drops for power potential…',
+        'Measuring river bed, head, flow, and weir sites…',
+        'Checking soil and earthquake records…',
+        `Selecting top sites for ${targetMw} MW…`,
       ];
       const result = await withAnalyser(`${targetMw} MW for ${city}`, steps, () =>
         fetch('/api/v1/dam/plan', {
@@ -1983,15 +3147,15 @@
       const workspace = document.getElementById('main-workspace');
       document.getElementById('overlay-mw-target').textContent = title;
       const ids = ['step-1', 'step-2', 'step-3', 'step-4', 'step-5'];
-      ids.forEach((id, k) => { document.getElementById(id).querySelector('span:last-child').textContent = `[Stage ${k + 1}/5] ${labels[k]}`; });
+      ids.forEach((id, k) => { document.getElementById(id).querySelector('span:last-child').textContent = labels[k]; });
       const setStage = idx => {
         ids.forEach((id, k) => {
           const el = document.getElementById(id);
           el.classList.toggle('active', k === idx);
           el.classList.toggle('done', k < idx);
-          el.querySelector('span:first-child').textContent = k < idx ? '✅' : k === idx ? '⏳' : '⚪';
+          el.querySelector('span:first-child').textContent = `${k + 1}.`;
         });
-        document.getElementById('analyser-status-text').textContent = labels[idx].replace(/…$/, '').toUpperCase();
+        document.getElementById('analyser-status-text').textContent = labels[idx].replace(/…$/, '');
         document.getElementById('analyser-progress-pct').textContent = Math.round((idx + 1) * 20) + '%';
       };
       workspace.classList.add('analyzing-blur');
@@ -2015,7 +3179,7 @@
     }
 
     function renderCityPlan(r, error) {
-      document.getElementById('dam-panel-title').textContent = 'City Power Plan';
+      document.getElementById('dam-panel-title').textContent = 'Dam Site Plan';
       const panel = document.getElementById('dam-planner-panel');
       const resultsDiv = document.getElementById('dam-plan-results');
       panel.style.display = 'flex';
@@ -2023,29 +3187,19 @@
       if (damLayer) { map.removeLayer(damLayer); damLayer = null; }
       damMarkers = [];
       if (error) {
-        resultsDiv.innerHTML = `<div style="border:1px solid rgba(248,113,113,.4);background:rgba(248,113,113,.08);border-radius:8px;padding:10px;font-size:12px;color:#fca5a5;">${escapeHtml(error)}</div>`;
+        resultsDiv.innerHTML = `<div style="border:1px solid rgba(248,113,113,.4);background:rgba(248,113,113,.08);border-radius:8px;padding:10px;font-size:13px;color:#fca5a5;">${escapeHtml(error)}</div>`;
         return;
       }
       damLayer = L.layerGroup().addTo(map);
       const home = [r.city.lat, r.city.lon];
       L.circle(home, { radius: r.radiusKm * 1000, color: '#38bdf8', weight: 1, dashArray: '4 6', fill: false, interactive: false }).addTo(damLayer);
       L.marker(home, {
-        icon: L.divIcon({ className: '', html: '<div style="font-size:22px;line-height:22px;filter:drop-shadow(0 1px 3px #000)">🏙️</div>', iconSize: [22, 22], iconAnchor: [11, 11] }),
+        icon: L.divIcon({ className: '', html: '<div style="font-size:11px;font-weight:700;color:#38bdf8;background:rgba(15,23,42,0.85);border:1px solid #38bdf8;border-radius:4px;padding:2px 4px;line-height:1;">CITY</div>', iconSize: [36, 18], iconAnchor: [18, 9] }),
       }).bindTooltip(`${escapeHtml(r.city.name)} · needs ${r.targetMw} MW`, { permanent: true, direction: 'top', offset: [0, -12] }).addTo(damLayer);
-
-      const listHtml = items => `<ul style="margin:4px 0 0;padding-left:16px;font-size:11px;color:var(--text-muted);">${items.map(x => `<li>${escapeHtml(x)}</li>`).join('')}</ul>`;
-      const footer = `
-        <details style="margin-top:10px;font-size:11px;color:var(--text-muted);">
-          <summary style="cursor:pointer;color:#fbbf24;">⚠ Not evaluated in this screening (${r.notEvaluated.length})</summary>${listHtml(r.notEvaluated)}
-        </details>
-        <details style="margin-top:6px;font-size:11px;color:var(--text-muted);">
-          <summary style="cursor:pointer;">Method &amp; assumptions</summary>${listHtml(r.assumptions)}
-        </details>
-        <div style="margin-top:6px;font-size:10px;color:var(--text-dim);">${(r.sources || []).map(escapeHtml).join(' · ')}</div>`;
 
       if (!r.ok) {
         map.fitBounds(L.circle(home, { radius: r.radiusKm * 1000 }).addTo(damLayer).getBounds());
-        resultsDiv.innerHTML = `<div style="background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.4);border-radius:8px;padding:10px;font-size:12px;color:#fde68a;">${escapeHtml(r.reason)}</div>${footer}`;
+        resultsDiv.innerHTML = `<div style="background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.4);border-radius:8px;padding:12px;font-size:13px;color:#fde68a;">${escapeHtml(r.reason)}</div>`;
         return;
       }
 
@@ -2053,7 +3207,7 @@
       const chosenKeys = new Set(r.sites.map(d => d.intake.join(',')));
       (r.feasible?.points || []).filter(p => !chosenKeys.has(p.intake.join(','))).forEach(p => {
         L.marker(p.intake, { icon: damIcon(18, true) })
-          .bindTooltip(`Also feasible · ${p.mw} MW (not needed for this demand)`, { direction: 'top', offset: [0, -8] }).addTo(damLayer);
+          .bindTooltip(`Also feasible · ${p.mw} MW`, { direction: 'top', offset: [0, -8] }).addTo(damLayer);
       });
       r.sites.forEach(d => {
         L.polyline([d.powerhouse, home], { color: '#fbbf24', weight: 1.5, opacity: 0.7, dashArray: '6 6', interactive: false }).addTo(damLayer);
@@ -2066,57 +3220,36 @@
       });
       map.fitBounds(bounds, { padding: [40, 40], maxZoom: 9 });
 
-      const LABELS = { power: 'Power', gorge: 'Narrow gorge', distance: 'Near city', foundation: 'Soil / foundation', seismic: 'Few earthquakes' };
-      const bar = (k, v) => `
-        <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text-muted);margin-top:2px;">
-          <span style="width:92px;">${LABELS[k]} <span style="opacity:.6">${Math.round(r.weights[k] * 100)}%</span></span>
-          <span style="flex:1;height:5px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;">
-            <span style="display:block;height:100%;width:${v === null ? 50 : Math.round(v * 100)}%;background:${v === null ? '#64748b' : '#38bdf8'};"></span>
-          </span>
-          <span style="width:28px;text-align:right;font-family:var(--font-mono);">${v === null ? 'n/a' : Math.round(v * 100)}</span>
-        </div>`;
       const cards = r.sites.map(d => `
-        <div class="dam-site-card" style="background: var(--bg-deep); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 10px; margin-top: 8px;">
+        <div class="dam-site-card" style="background: var(--bg-deep); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 12px; margin-top: 10px;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
-            <strong style="color: #38bdf8; font-size: 12px;">Site ${d.rank} · score ${d.score}/100</strong>
-            <span style="font-family: var(--font-mono); font-size: 11px; background: rgba(56, 189, 248, 0.2); padding: 2px 6px; border-radius: 4px; color: #ffffff;">${d.proposedMw} MW</span>
+            <strong style="color: #38bdf8; font-size: 14px;">Site ${d.rank} · score ${d.score}/100</strong>
+            <span style="font-family: var(--font-mono); font-size: 13px; font-weight: 600; background: rgba(56, 189, 248, 0.2); padding: 2px 8px; border-radius: 4px; color: #ffffff;">${d.proposedMw} MW</span>
           </div>
-          <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
-            ${d.proposedMw < d.mw ? `Potential <b>${d.mw} MW</b>, ${d.proposedMw} MW needed · ` : ''}Head <b>${d.headM} m</b> over ${d.diversionKm} km · Flow <b>${d.flowCms} m³/s</b> · Weir crest <b>≈ ${d.weirCrestM} m</b>
+          <div style="font-size: 13px; color: var(--text-muted); margin-top: 6px;">
+            Head <b>${d.headM} m</b> over ${d.diversionKm} km · Flow <b>${d.flowCms} m³/s</b> · Weir <b>≈ ${d.weirCrestM} m</b>
           </div>
-          <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
-            <b>${d.distanceToCityKm} km</b> to ${escapeHtml(r.city.name)} · ${d.soil ? `Soil: <b>${escapeHtml(d.soil.textureClass)}</b> (stones ${d.soil.coarseFragmentsPct}%, clay ${d.soil.clayPct}%)` : 'Soil: n/a'} · ${d.quakesM5Within50km === null ? 'quakes n/a' : `<b>${d.quakesM5Within50km}</b> M5+ quakes ≤50 km since 1970`}
+          <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">
+            <b>${d.distanceToCityKm} km</b> from ${escapeHtml(r.city.name)} · ${d.soil ? `Soil: <b>${escapeHtml(d.soil.textureClass)}</b>` : 'Soil: n/a'} · ${d.quakesM5Within50km === null ? 'quakes n/a' : `<b>${d.quakesM5Within50km}</b> M5+ quakes nearby`}
           </div>
-          <div style="margin-top: 6px;">${Object.keys(r.weights).map(k => bar(k, d.criteria[k])).join('')}</div>
-          <div style="font-size: 10px; color: var(--text-dim); margin-top: 4px; font-family: var(--font-mono);">Weir ${d.intake[0].toFixed(5)}, ${d.intake[1].toFixed(5)}</div>
-          <div style="display:flex;gap:6px;margin-top:6px;">
-            <button class="btn" style="flex:1;justify-content:center;font-size:10px;padding:4px;" onclick="showSatellite(); map.flyTo([${d.intake[0]}, ${d.intake[1]}], 15)">📍 Inspect on satellite</button>
-            <button class="btn" style="flex:1;justify-content:center;font-size:10px;padding:4px;" onclick="reviewSiteWithGemma(this, ${d.intake[0]}, ${d.intake[1]}, ${d.rank})">✦ Gemma 4 site review</button>
+          <div style="display:flex;gap:10px;margin-top:12px;">
+            <button class="btn" style="flex:1;justify-content:center;font-size:12.5px;padding:8px 12px;" onclick="showSatellite(); map.flyTo([${d.intake[0]}, ${d.intake[1]}], 15)">Satellite view</button>
+            <button class="btn" style="flex:1;justify-content:center;font-size:12.5px;padding:8px 12px;" onclick="reviewSiteWithGemma(this, ${d.intake[0]}, ${d.intake[1]}, ${d.rank})">Site review</button>
           </div>
-          <div class="gemma-review" style="font-size:11px;margin-top:6px;"></div>
+          <div class="gemma-review" style="font-size:13px;margin-top:8px;"></div>
         </div>`).join('');
 
       resultsDiv.innerHTML = `
-        <div style="background: ${r.meetsTarget ? 'rgba(16, 185, 129, 0.15)' : 'rgba(251,191,36,.1)'}; border: 1px solid ${r.meetsTarget ? 'rgba(16, 185, 129, 0.4)' : 'rgba(251,191,36,.4)'}; border-radius: 8px; padding: 10px;">
-          <div style="font-size: 11px; font-weight: 700; color: ${r.meetsTarget ? '#34d399' : '#fbbf24'}; text-transform: uppercase;">Power plan · ${escapeHtml(r.city.name)} · ${r.rankBy === 'nearest' ? 'nearest sites first' : 'best sites first'}</div>
-          <div style="font-size: 14px; font-weight: 800; color: #ffffff; margin-top: 2px;">${r.sites.length} site${r.sites.length > 1 ? 's' : ''} supply ${r.achievedMw} of ${r.targetMw} MW</div>
-          <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
-            ≈ <b>${r.annualGWh.toLocaleString()} GWh/yr</b> at 50 % capacity factor · ${r.reachesScanned.toLocaleString()} river reaches scanned, ${r.stretchesAnalysed} stretches analysed, ${r.candidatesScored} sites scored in ${(r.tookMs / 1000).toFixed(0)} s
-            ${r.meetsTarget ? '' : `<br/>Only ${r.potentialMw} MW of suitable sites within ${r.radiusKm} km: try a larger radius.`}
-          </div>
+        <div style="background: ${r.meetsTarget ? 'rgba(16, 185, 129, 0.15)' : 'rgba(251,191,36,.1)'}; border: 1px solid ${r.meetsTarget ? 'rgba(16, 185, 129, 0.4)' : 'rgba(251,191,36,.4)'}; border-radius: 8px; padding: 12px;">
+          <div style="font-size: 12px; font-weight: 600; color: ${r.meetsTarget ? '#34d399' : '#fbbf24'};">${escapeHtml(r.city.name)}</div>
+          <div style="font-size: 15px; font-weight: 700; color: #ffffff; margin-top: 2px;">${r.sites.length} site${r.sites.length > 1 ? 's' : ''} · ${r.achievedMw} of ${r.targetMw} MW (${r.annualGWh.toLocaleString()} GWh/yr)</div>
+          ${r.meetsTarget ? '' : `<div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Only ${r.potentialMw} MW found within ${r.radiusKm} km. Try a larger radius.</div>`}
         </div>
-        <div style="margin-top:8px;padding:8px 10px;border:1px solid var(--border-subtle);border-radius:8px;font-size:11px;color:var(--text-muted);">
-          <b style="color:#fff;">${r.feasible.complete ? '' : 'At least '}${r.feasible.sites} feasible dam sites in ${r.feasible.regions} region${r.feasible.regions === 1 ? '' : 's'}</b>
-          within ${r.radiusKm} km (≈ ${r.feasible.totalMw.toLocaleString()} MW together; faded dam icons on the map).
-          ${r.feasible.complete ? '' : `Found in the ${r.stretchesAnalysed} most promising stretches; <b>${r.feasible.unverifiedAreas}</b> more promising area${r.feasible.unverifiedAreas === 1 ? '' : 's'} were not analysed in detail.`}
-        </div>
-        ${cards}
-        ${footer}`;
+        ${cards}`;
     }
 
     // =========================================================================
     // HYDROPOWER SITES — map layer shared by the planner and the river atlas (server: dam.js)
-    // Sites are computed along the real river (HydroRIVERS) from DEM heads and modelled flow.
     // =========================================================================
     let damLayer = null;
 
@@ -2124,11 +3257,11 @@
       return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     }
 
-    // Gemma 4 reviews a candidate site: satellite image + terrain/flood/rain data (Hazard Lens API)
+    // Reviews a candidate site: satellite image + terrain/flood/rain data (Hazard Lens API)
     async function reviewSiteWithGemma(btn, lat, lon, rank) {
       const box = btn.closest('.dam-site-card').querySelector('.gemma-review');
       btn.disabled = true;
-      box.innerHTML = '<span style="color:var(--text-muted);">✦ Gemma 4 is looking at the satellite image and data (up to ~90 s)…</span>';
+      box.innerHTML = '<span style="color:var(--text-muted);">Checking satellite imagery and site hazards…</span>';
       try {
         const res = await fetch('/api/v1/hazard', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -2136,14 +3269,9 @@
         });
         const r = await res.json();
         if (!res.ok) throw new Error(r.error || `HTTP ${res.status}`);
-        const tag = r.readingSource === 'gemma'
-          ? `<span style="color:#38bdf8;">✦ Gemma 4 (${escapeHtml(r.model)})</span>`
-          : r.readingSource === 'backup'
-            ? '<span style="color:#94a3b8;">✦ AI site review</span>'
-            : '<span style="color:#94a3b8;">Site review from the data</span>';
         const a = r.reading;
-        box.innerHTML = `${tag}<div style="color:#fff;margin-top:3px;">${escapeHtml(a.headline)}</div>
-          <ul style="margin:4px 0 0;padding-left:16px;color:var(--text-muted);">${a.hazards.map(h => `<li><b>${escapeHtml(h.type.replace(/_/g, ' '))}: ${escapeHtml(h.level.replace('_', ' '))}</b> — ${escapeHtml(h.evidence_image)}</li>`).join('')}</ul>`;
+        box.innerHTML = `<div style="color:#fff;margin-top:3px;">${escapeHtml(a.headline)}</div>
+          <ul style="margin:4px 0 0;padding-left:18px;color:var(--text-muted);">${a.hazards.map(h => `<li><b>${escapeHtml(h.type.replace(/_/g, ' '))}: ${escapeHtml(h.level.replace('_', ' '))}</b> — ${escapeHtml(h.evidence_image)}</li>`).join('')}</ul>`;
       } catch (err) {
         box.innerHTML = `<span style="color:#fca5a5;">Review failed: ${escapeHtml(err.message)}</span>`;
       } finally {
@@ -2152,13 +3280,19 @@
     }
 
     // =========================================================================
-    // AQUA (GEMMA 4) TERMINAL CHAT
+    // AQUA CHAT
     // =========================================================================
     function toggleAqua(show) {
       const drawer = document.getElementById('aqua-drawer');
-      drawer.style.display = show ? 'flex' : 'none';
-      if (show) {
-        document.getElementById('aqua-input').focus();
+      const btn = document.getElementById('btn-ask-aqua');
+      const shouldOpen = show !== undefined ? !!show : !drawer.classList.contains('open');
+      drawer.classList.toggle('open', shouldOpen);
+      if (btn) btn.classList.toggle('active', shouldOpen);
+      if (shouldOpen) {
+        setTimeout(() => {
+          const input = document.getElementById('aqua-input');
+          if (input) input.focus();
+        }, 120);
       }
     }
 
@@ -2177,7 +3311,7 @@
 
       // Loading bubble
       const loadingId = 'loading-' + Date.now();
-      appendChatMessage('Gemma 4 is thinking...', 'aqua', loadingId);
+      appendChatMessage('Thinking...', 'aqua', loadingId);
 
       try {
         const res = await fetch('/api/v1/aqua/chat', {
@@ -2197,9 +3331,7 @@
 
         if (res.ok) {
           const data = await res.json();
-          appendChatMessage(formatMarkdown(data.text + (data.model && data.gemma ? `
-
-*Answered by ${data.model}*` : '')), 'aqua');
+          appendChatMessage(formatMarkdown(data.text), 'aqua');
           if (data.targetCoords && map) {
             map.flyTo(data.targetCoords, 9);
           }
@@ -2217,23 +3349,23 @@
 
     // Shown when the AI did not answer: says so, and gives general notes only (nothing about this river)
     function appendFallbackAquaAnswer(query) {
-      appendChatMessage(formatMarkdown('*Gemma 4 could not answer right now (the free AI service may be busy). Please try again in a minute. General notes, not specific to this river:*'), 'aqua');
+      appendChatMessage(formatMarkdown('*Could not reach the assistant right now. General notes:*'), 'aqua');
       const q = query.toLowerCase();
       let answer = '';
 
       if (q.includes('dam') || q.includes('mw') || q.includes('power')) {
-        answer = `### ⚡ Aqua Hydropower Analysis
+        answer = `### Aqua Hydropower Analysis
 To fulfill electrical demand, River Eyes applies the physics formula:
 $$P = \\frac{\\eta \\cdot \\rho \\cdot g \\cdot Q \\cdot H}{10^6}$$
 * **Turbine efficiency**: $\\eta = 0.90$
 * **Gravity**: $g = 9.81\\text{ m/s}^2$
 * For high power outputs (> 400 MW), a multi-dam cascade is allocated to minimize reservoir submergence while maximizing natural gorge drop.`;
       } else if (q.includes('soil') || q.includes('bearing')) {
-        answer = `### 🧪 Geotechnical Soil Assessment
+        answer = `### Geotechnical Soil Assessment
 * **Bearing Capacity ($q_u$)**: Evaluated from ISRIC SoilGrids. Rock flanks (> 400 kPa) support concrete gravity dams.
 * **Bedrock Depth**: Deep alluvium (> 20m) requires positive cut-off diaphragm walls or earth-fill rockfill embankments.`;
       } else {
-        answer = `### 🌊 Aqua
+        answer = `### Aqua
 River Eyes can help with dam siting (power in MW), soil and foundations, floods and water quality. For live numbers, use the Water Quality and Site Conditions panels.`;
       }
 
@@ -2276,6 +3408,8 @@ River Eyes can help with dam siting (power in MW), soil and foundations, floods 
 
     // Initialize application on page load
     window.addEventListener('DOMContentLoaded', () => {
+      bindSmoothSlider('mw-slider', 'mw-input', 'mw-wrap');
+      bindSmoothSlider('plan-radius', 'plan-radius-input', 'plan-radius-wrap');
       initMap();
       switchRiver('ganga');
       document.getElementById('plan-city-go').addEventListener('click', findPlanCity);

@@ -1,10 +1,10 @@
 /**
  * NatureWaterTransition — Ultra-Lightweight 60fps Canvas Transition Engine
  * ========================================================================
- * 1. Forest ➔ River: Screen floods with rising water, bubbles, light rays,
+ * 1. Forest -> River: Screen floods with rising water, bubbles, light rays,
  *    and schools of BIGGER majestic river fish (Koi, Salmon, Trout, Perch)
  *    swimming across the submerged screen with oscillating fins and tails.
- * 2. River ➔ Forest: Simple flat geometric PINE TREES (triangular layered)
+ * 2. River -> Forest: Simple flat geometric PINE TREES (triangular layered)
  *    rise from the bottom, accompanied by flocks of BIRDS soaring across the
  *    canopy and sky with flapping wings and bird audio chirps.
  *    Curtain parts to seamlessly reveal Forest Eyes.
@@ -151,7 +151,7 @@ class NatureWaterTransition {
   }
 
   // =========================================================================
-  // TRANSITION 1: FOREST ➔ RIVER (Water Flood + BIGGER Swimming Fish)
+  // TRANSITION 1: FOREST -> RIVER (Water Flood + BIGGER Swimming Fish)
   // =========================================================================
   floodToRiver(onMidpoint, onComplete) {
     if (this.isAnimating) return;
@@ -548,7 +548,7 @@ class NatureWaterTransition {
   }
 
   // =========================================================================
-  // TRANSITION 2: RIVER ➔ FOREST (Pine Trees + Soaring Flocks of Birds)
+  // TRANSITION 2: RIVER -> FOREST (Pine Trees + Soaring Flocks of Birds)
   // Simple flat GEOMETRIC PINE TREES (triangular layered) + Flocks of Birds
   // ZERO LAG — ultra-lightweight pure vector fills.
   // =========================================================================
@@ -662,7 +662,7 @@ class NatureWaterTransition {
   }
 
   // =========================================================================
-  // BIRDS FLOCK SYSTEM (River ➔ Forest)
+  // BIRDS FLOCK SYSTEM (River -> Forest)
   // =========================================================================
   initBirds() {
     this.birds = [];

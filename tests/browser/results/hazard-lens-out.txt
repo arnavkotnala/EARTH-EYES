@@ -1,0 +1,5 @@
+ok    #lens opens the overlay: overlay visible
+ok    preset in overlay: result drawn
+ok    ↻ Retry with Gemma 4: re-assessed (reading source now: Reading from the data)
+ok    Download PDF inside the overlay: hazard-lens-labrea-amazonas-brazil-2026-10-28.pdf
+ok    Esc closes the overlay: closed

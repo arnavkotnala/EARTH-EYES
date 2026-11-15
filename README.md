@@ -61,7 +61,8 @@ Open http://localhost:8080 — useful links: `#river` (opens River Eyes), `#lens
 HydroRIVERS / HydroSHEDS (Lehner & Grill 2013) · GloFAS v4 via Open-Meteo · ISRIC SoilGrids 2.0 ·
 ESA Sentinel-2 (Microsoft Planetary Computer) · JRC Global Surface Water (Pekel et al. 2016) ·
 UMD / Hansen tree cover loss via Global Forest Watch / Global Nature Watch · USGS earthquake catalogue ·
-AWS Terrain Tiles · Esri World Imagery · Open-Meteo weather · ERA5 reanalysis · CHPclim rainfall · CAMS air quality ·
+AWS Terrain Tiles · Esri World Imagery · Open-Meteo weather · ERA5 reanalysis · NASA POWER (MERRA-2) · WorldClim 2.1 ·
+CHPclim rainfall · CAMS air quality ·
 Kew WCVP native ranges ·
 FAO ECOCROP tree requirements (via Recocrop) · UNECE critical levels for vegetation. Details and citations: `backend/datasets/README.md`.
 

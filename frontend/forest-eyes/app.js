@@ -61,6 +61,9 @@ const map = L.map('map', {
   center: [20, 0],
   zoom: 3,
   zoomControl: false,
+  maxZoom: 16,   // GFW data tiles cap at z12; base layers work fine to z16; beyond that the tile APIs 404
+  minZoom: 2,
+  attributionControl: false,
 });
 
 // Base layers
@@ -130,8 +133,6 @@ bindToggle('toggle-glad',
 // State
 let currentMarker = null;
 let currentPolygon = null;
-let lastLat = null;
-let lastLng = null;
 let lastName = null;
 let latestApiUpdatedAt = null;
 let latestLossRows = [];
@@ -269,8 +270,9 @@ if (globeToggle) globeToggle.addEventListener('change', (event) => {
   if (showGlobe) {
     initGlobe();
     resizeGlobe();
-    resumeGlobe();
   }
+  // (The loop is resumed after onToggle: resumed before, its first frame drew and uploaded the
+  // full earth that the transition is about to hide.)
   window.ForestGlobeTransition?.onToggle(showGlobe); // [transition] animated 2D→3D wrap; no-op if globe-transition.js is missing
   resumeGlobe(); // the wrap/unwrap animation is driven by the globe's render loop: make sure it runs
 });
@@ -450,9 +452,8 @@ $analyzeBtn.addEventListener('click', () => {
   analyzeLocation(lat, lng);
 });
 
-$retryBtn.addEventListener('click', () => {
-  if (lastLat !== null && lastLng !== null) analyzeLocation(lastLat, lastLng);
-});
+// Same as Analyze: re-reads the inputs, so it also works after an input error and uses coordinates typed since
+$retryBtn.addEventListener('click', () => $analyzeBtn.click());
 
 // =============================================
 //  CORE: ANALYZE LOCATION
@@ -461,8 +462,6 @@ $retryBtn.addEventListener('click', () => {
 //  Results are stored in the appropriate cache.
 // =============================================
 async function analyzeLocation(lat, lng) {
-  lastLat = lat;
-  lastLng = lng;
   const radiusKm = parseInt($radiusInput.value);
   const locationName = lastName || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
   const mode  = getDataSourceMode();
@@ -1249,6 +1248,8 @@ function resizeGlobe() {
   const height = $globeContainer.clientHeight || window.innerHeight;
   globeScene.camera.aspect = width / height;
   globeScene.camera.updateProjectionMatrix();
+  const size = globeScene.renderer.getSize(new THREE.Vector2());
+  if (size.x === width && size.y === height) return; // resizing reallocates the canvas (~10 ms per 2D→3D switch)
   globeScene.renderer.setSize(width, height);
 }
 

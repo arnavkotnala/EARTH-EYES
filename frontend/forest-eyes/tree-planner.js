@@ -44,7 +44,7 @@
   const escapeHtml = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
   let speciesPromise = null;
-  let overlay, modal, body, lastFocus;
+  let overlay, modal, body, actions, lastFocus;
   let state = null;   // { seq, lat, lon, name, parts: {climate, soil, air}, status: {key: 'loading'|'done'|'error'}, rainfallMm, selected }
   let seq = 0;
 
@@ -91,11 +91,17 @@
           </div>
           <button type="button" class="tp-close" aria-label="Close tree planner">×</button>
         </header>
+        <div class="tp-actions hidden" id="tp-actions">
+          <button type="button" class="btn-secondary tp-pdf">⬇ Download PDF</button>
+          <span class="tp-pdf-note" role="status" aria-live="polite"></span>
+        </div>
         <div class="tp-body" id="tp-body"></div>
       </section>`;
     document.body.appendChild(overlay);
     modal = overlay.querySelector('.tp-modal');
     body = overlay.querySelector('#tp-body');
+    actions = overlay.querySelector('#tp-actions');
+    actions.querySelector('.tp-pdf').addEventListener('click', downloadPdf);
     overlay.querySelector('.tp-close').addEventListener('click', close);
     overlay.addEventListener('mousedown', e => { if (e.target === overlay) close(); });
     overlay.addEventListener('keydown', e => {
@@ -199,6 +205,7 @@
   function stepIcon(s) { return s === 'done' ? '✓' : s === 'error' ? '✕' : ''; }
 
   function renderLoading() {
+    updateActions(false);
     body.innerHTML = `
       <div class="tp-loading" role="status" aria-live="polite">
         <div class="spinner"></div>
@@ -212,6 +219,7 @@
   }
 
   function renderError(message) {
+    updateActions(false);
     body.innerHTML = `
       <div class="tp-error" role="alert">
         <div class="error-icon">⚠️</div>
@@ -242,7 +250,7 @@
     const c = state.parts.climate, s = state.parts.soil, a = state.parts.air;
     const soilText = state.status.soil === 'loading' ? 'loading…'
       : state.status.soil === 'error' ? 'did not load'
-        : s?.hasData ? `${[s.textureClass, Number.isFinite(s.pH) ? `pH ${s.pH}` : null].filter(Boolean).join(', ')}${s.distanceKm ? ` (${s.distanceKm} km away)` : ''}` : 'no data here';
+        : s?.hasData ? `${[s.textureClass, Number.isFinite(s.pH) ? `pH ${s.pH}` : null].filter(Boolean).join(', ')}${s.fallback ? ' (~22 km average)' : s.distanceKm ? ` (${s.distanceKm} km away)` : ''}` : 'no data here';
     const airText = a ? `${{ good: 'Good', moderate: 'Moderate', poor: 'Poor' }[a.status]} for trees` : state.status.air === 'error' ? 'did not load' : '—';
     const rain = state.rainfallMm ?? c.annualRainMm;
     return `
@@ -253,12 +261,14 @@
           ${state.rainfallMm != null ? `<button type="button" class="tp-link tp-rain-reset">use the data (${c.annualRainMm} mm)</button>` : ''}
         </div>
         <div class="tp-site-item"><span class="tp-site-label">🌡️ Temperature</span><span class="tp-site-value">${c.coldestMonthC} – ${c.warmestMonthC} °C <small>monthly means</small></span></div>
-        <div class="tp-site-item"><span class="tp-site-label">❄️ Winter low</span><span class="tp-site-value">${c.typicalMinC} °C <small>record ${c.absMinC}</small></span></div>
+        <div class="tp-site-item"><span class="tp-site-label">❄️ Winter low</span><span class="tp-site-value">${Number.isFinite(c.typicalMinC)
+          ? `${c.typicalMinC} °C <small>record ${c.absMinC}</small>`
+          : `${c.coldestMonthMinC} °C <small>coldest month's average night</small>`}</span></div>
         <div class="tp-site-item"><span class="tp-site-label">☀️ Sunshine</span><span class="tp-site-value">${c.sunHoursPerDay} h/day</span></div>
         <div class="tp-site-item"><span class="tp-site-label">🪨 Soil</span><span class="tp-site-value">${escapeHtml(soilText)}</span></div>
         <div class="tp-site-item"><span class="tp-site-label">💨 Air</span><span class="tp-site-value tp-air-${a?.status || 'none'}">${escapeHtml(airText)}</span></div>
       </div>
-      <p class="tp-note" id="tp-rain-note">${escapeHtml(c.caveat)}</p>`;
+      <p class="tp-note" id="tp-rain-note">${escapeHtml([c.caveat, s?.fallback].filter(Boolean).join(' '))}</p>`;
   }
 
   function checklist(fit) {
@@ -307,6 +317,7 @@
     // Soil can arrive while the user is typing a rainfall figure: keep what they typed
     const typing = document.activeElement?.id === 'tp-rain' ? document.activeElement.value : null;
 
+    updateActions(true);
     body.innerHTML = `
       ${summary()}
       <div class="tp-columns">
@@ -442,26 +453,323 @@
   }
 
   /** "Native to West Himalaya, India and 5 more (Kew)", with the status here. */
-  function nativeText(sp, fit) {
+  function nativeText(sp, fit, esc = escapeHtml) {
     if (!sp.wcvp) return 'native range not recorded';
     const names = sp.wcvp.native.map(c => state.regions[c] || c);
     const list = names.slice(0, 5).join(', ') + (names.length > 5 ? ` and ${names.length - 5} more` : '');
     const here = { native: ' (native here)', introduced: ' (introduced here)', 'not-recorded': ' (not recorded here)' }[fit.nativeStatus] || '';
-    return `native to ${escapeHtml(list)}${here}`;
+    return `native to ${esc(list)}${here}`;
   }
+
+  const fmtTrait = v => (Array.isArray(v) ? v.join(', ') : typeof v === 'object' && v ? `${v.min}–${v.max}` : typeof v === 'boolean' ? (v ? 'yes' : 'no') : String(v));
+  const sourceText = s => [s.title, s.edition, s.year, s.page ? `p. ${s.page}` : null].filter(Boolean).join(', ');
 
   /** The team's sourced values for this tree, each with its source and quote. */
   function traitsHtml(sp) {
     if (!sp.sources || !Object.keys(sp.sources).length) return '';
-    const fmt = v => (Array.isArray(v) ? v.join(', ') : typeof v === 'object' && v ? `${v.min}–${v.max}` : typeof v === 'boolean' ? (v ? 'yes' : 'no') : String(v));
+    const fmt = fmtTrait;
     const rows = Object.entries(sp.sources).map(([k, s]) => {
       const v = sp.values?.[k];
-      const where = [s.title, s.edition, s.year, s.page ? `p. ${s.page}` : null].filter(Boolean).join(', ');
+      const where = sourceText(s);
       return `<li><strong>${escapeHtml(TRAIT_LABEL[k] || k)}</strong>${v != null ? `: ${escapeHtml(fmt(v))}` : ''}
         <div class="tp-table-note">${s.url ? `<a href="${escapeHtml(s.url)}" target="_blank" rel="noopener">${escapeHtml(where)}</a>` : escapeHtml(where)} — “${escapeHtml(s.quote)}”</div></li>`;
     });
     return `<div class="tp-traits"><h4>Sourced tree facts</h4><ul>${rows.join('')}</ul>
       <p class="tp-by">Added by the team, checked by ${escapeHtml(sp.checkedBy || '—')}.</p></div>`;
+  }
+
+  // ---------------------------------------------------------------------
+  // PDF: this place's growing conditions, then every tree that can grow here
+  // ---------------------------------------------------------------------
+  const TEXTURE_NAME = { L: 'light (sandy)', M: 'medium (loamy)', H: 'heavy (clayey)', O: 'organic' };
+  const DRAINAGE = { W: 'well-drained', I: 'imperfectly drained', E: 'excessively drained (free-draining)', P: 'poorly drained' };
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const FIT_TEXT = { good: 'Good fit', care: 'With care' };
+  const NATIVE_TEXT = { native: 'Native here', introduced: 'Introduced here', 'not-recorded': 'Not recorded here' };
+  const PDF_STATUS = { pass: 'OK', marginal: 'Care', fail: 'No', unknown: '?' };
+  const fin = Number.isFinite;
+
+  // jsPDF is only fetched the first time someone asks for a PDF (same libraries as Hazard Lens)
+  const loadScript = src => new Promise((ok, fail) => {
+    const s = document.createElement('script');
+    s.src = src; s.onload = ok; s.onerror = () => fail(new Error(`could not load ${src}`));
+    document.head.append(s);
+  });
+  let pdfLib = null;
+  const loadPdfLib = () => (pdfLib ??= loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js')
+    .then(() => loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js'))
+    .catch(err => { pdfLib = null; throw err; }));
+
+  // jsPDF's built-in fonts only cover Latin-1: swap the symbols the data uses (SO₂, ≈, –), take the accents off
+  // other Latin letters (Gdańsk → Gdansk, İzmir → Izmir), drop the rest (emoji, non-Latin scripts)
+  const UNACCENTED = { ł: 'l', Ł: 'L', đ: 'd', Đ: 'D', ı: 'i', ħ: 'h', Ħ: 'H', ŧ: 't', Ŧ: 'T', œ: 'oe', Œ: 'OE', ŋ: 'ng', Ŋ: 'NG' };
+  const pdfText = s => String(s ?? '').replace(/≈/g, '~').replace(/≥/g, '>=').replace(/≤/g, '<=').replace(/→/g, '->')
+    .replace(/[–—−]/g, '-').replace(/…/g, '...').replace(/[“”]/g, '"').replace(/[‘’]/g, "'")
+    .replace(/[₀-₉]/g, d => String(d.charCodeAt(0) - 0x2080))
+    .replace(/[^\x00-\xff]/g, ch => UNACCENTED[ch] ?? ch.normalize('NFD').replace(/\p{M}/gu, ''))
+    .replace(/[^\n\x20-\x7e\xa0-\xff]/g, '').replace(/ {2,}/g, ' ').trim();
+  // A name with no letters left after that (Devanagari, CJK, Arabic…) is replaced by the coordinates
+  const pdfName = (name, coords) => (/[A-Za-z\xc0-\xff]/.test(pdfText(name)) ? pdfText(name) : coords);
+
+  const textures = codes => codes.split('').map(c => TEXTURE_NAME[c]).filter(Boolean).join(', ');
+  const lightSpan = ([a, b]) => (a === b ? Fit.LIGHT[a].label : `${Fit.LIGHT[a].label} to ${Fit.LIGHT[b].label}`);
+
+  /** What this place offers trees, as [measure, value] rows. */
+  function conditionRows() {
+    const c = state.parts.climate, s = state.parts.soil, a = state.parts.air, se = c.seasons;
+    const rows = [
+      ['Annual rainfall', state.rainfallMm != null ? `${state.rainfallMm} mm a year (your figure; the data gives ${c.annualRainMm} mm)` : `${c.annualRainMm} mm a year`],
+    ];
+    if (se?.wetSeason) rows.push(['Wet season', se.wetSeason]);
+    if (Array.isArray(se?.dryMonths)) rows.push(['Dry months', se.dryMonths.length ? `${se.dryMonths.join(', ')} (${se.rule})` : 'none']);
+    if (fin(c.meanTempC)) rows.push(['Mean temperature', `${c.meanTempC} °C over the year`]);
+    rows.push(['Monthly mean temperature', `${c.coldestMonthC} °C (coldest month) to ${c.warmestMonthC} °C (warmest month)`]);
+    rows.push(['Winter low', fin(c.typicalMinC) ? `${c.typicalMinC} °C in a normal winter (record ${c.absMinC} °C)` : `${c.coldestMonthMinC} °C (coldest month's average night)`]);
+    // frostMonths = months whose AVERAGE night is at or below 0 °C (backend): single frosty nights are not counted
+    if (Array.isArray(c.frostMonths)) {
+      rows.push(['Months with average nights at or below 0 °C', c.frostMonths.length ? c.frostMonths.join(', ')
+        : fin(c.typicalMinC) && c.typicalMinC < 0 ? `none on average, but frosty nights still occur (normal winter low ${c.typicalMinC} °C)` : 'none']);
+    }
+    rows.push(['Sunshine', `${c.sunHoursPerDay} h a day${fin(c.sunHoursLowestMonth) ? ` (${c.sunHoursLowestMonth} h in the dullest month)` : ''}`]);
+    if (fin(c.terrainElevationM)) rows.push(['Altitude', `${c.terrainElevationM} m`]);
+    if (c.region) rows.push(['Botanical region', `${c.region.name} (${c.region.code})`]);
+    if (s?.hasData) {
+      const where = s.fallback ? ' (~22 km average)' : s.distanceKm ? ` (${s.distanceKm} km away)` : '';
+      // SoilGrids can return some layers without others: each row only when its values exist
+      if (s.textureClass) rows.push(['Soil texture', `${s.textureClass}${Fit.TEXTURE_OF[s.textureClass] ? `, ${TEXTURE_NAME[Fit.TEXTURE_OF[s.textureClass]]}` : ''}${where}`]);
+      if (fin(s.pH)) rows.push(['Soil pH', `${s.pH}${s.textureClass ? '' : where}`]);
+      if ([s.clayPct, s.sandPct, s.siltPct].every(fin)) rows.push(['Clay / sand / silt', `${s.clayPct} / ${s.sandPct} / ${s.siltPct} %`]);
+      if (fin(s.organicCarbonGkg)) rows.push(['Organic carbon', `${s.organicCarbonGkg} g/kg`]);
+    } else {
+      rows.push(['Soil', state.status.soil === 'error' ? `did not load (${state.errors.soil})` : 'no soil data here: test the soil on site']);
+    }
+    rows.push(['Air quality for trees', a
+      ? `${{ good: 'Good', moderate: 'Moderate', poor: 'Poor' }[a.status]}${a.exceeded?.length ? ` (${a.exceeded.join(', ')} above the critical level)` : ''}: ${a.summary}`
+      : state.status.air === 'error' ? `did not load (${state.errors.air})` : 'no data']);
+    return rows;
+  }
+
+  const drains = sp => (sp.drainage || []).map(d => DRAINAGE[d]).filter(Boolean).join(' or ');
+  const ideal = (r, unit = '') => (r.length === 4 ? `${r[1]}-${r[2]}${unit}` : `${r[0]}-${r[r.length - 1]}${unit}`);
+
+  /** A tree's ideal conditions in one line, for the "with care" table. */
+  function needSummary(sp) {
+    return [
+      sp.temp ? `${ideal(sp.temp, ' °C')} in the growing season` : sp.tempAnnual ? `${ideal(sp.tempAnnual, ' °C')} annual mean` : null,
+      sp.killC != null ? `killed by frost below ${sp.killC} °C` : null,
+      sp.rain ? `${ideal(sp.rain, ' mm')} rain a year` : null,
+      sp.ph ? `soil pH ${ideal(sp.ph)}` : null,
+      sp.texture ? `${textures(sp.texture.optimal)} soil` : null,
+      sp.drainage?.length ? drains(sp) : null,
+      sp.light ? `${lightSpan(sp.light.optimal)} light` : null,
+      sp.altitudeM ? `${sp.altitudeM[0]}-${sp.altitudeM[1]} m altitude` : null,
+    ].filter(Boolean).join('; ') || 'not recorded';
+  }
+
+  /** The team's sourced values for a tree, as [fact, value (source: "quote")] rows. */
+  const sourcedRows = sp => Object.entries(sp.sources || {}).map(([k, s]) => {
+    const v = sp.values?.[k];
+    return [TRAIT_LABEL[k] || k, `${v != null ? `${fmtTrait(v)} ` : ''}(${sourceText(s)}: "${s.quote}")`];
+  });
+
+  /**
+   * The PDF bar lives outside #tp-body, so re-rendering the list never swaps the button under a click
+   * (typing a rainfall figure and clicking the button re-renders on blur, between mousedown and click).
+   * While busy the button stays focusable (aria-disabled, not disabled), so focus stays in the dialog.
+   */
+  function updateActions(show) {
+    if (!actions) return;
+    actions.classList.toggle('hidden', !show);
+    if (!show) return;
+    const pdfBtn = actions.querySelector('.tp-pdf');
+    const wait = state.status.soil === 'loading';
+    pdfBtn.disabled = wait; // only ever before the first click: soil never starts loading again for this place
+    pdfBtn.setAttribute('aria-disabled', String(wait || !!state.pdfBusy));
+    pdfBtn.textContent = state.pdfBusy ? 'Preparing PDF…' : state.pdfMsg === 'failed' ? 'PDF failed - try again' : '⬇ Download PDF';
+    actions.querySelector('.tp-pdf-note').textContent = wait ? 'Waiting for the soil data…'
+      : state.pdfBusy ? 'Preparing the PDF…'
+        : state.pdfMsg === 'done' ? 'PDF downloaded.'
+          : state.pdfMsg === 'failed' ? 'The PDF could not be made. Check the connection and try again.'
+            : 'This place\'s growing conditions and every tree that can grow here.';
+  }
+
+  async function downloadPdf(e) {
+    const s = state;
+    // detail > 1: the second click of a double-click (once jsPDF is cached the first one finishes before it)
+    if (!s || s.pdfBusy || s.status.soil === 'loading' || e?.detail > 1) return;
+    s.pdfBusy = true;
+    s.pdfMsg = null;
+    updateActions(true);
+    try {
+      await loadPdfLib();
+      if (state !== s) return; // another place was opened meanwhile: the rest is synchronous
+      const doc = new window.jspdf.jsPDF({ unit: 'pt', format: 'a4' });
+      const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight(), M = 40;
+      let y = M;
+      const room = h => { if (y + h > H - M - 14) { doc.addPage(); y = M; } };
+      const line = (text, size = 10, style = 'normal', color = 40) => {
+        doc.setFont('helvetica', style); doc.setFontSize(size); doc.setTextColor(color);
+        const lines = doc.splitTextToSize(pdfText(text), W - 2 * M);
+        room(lines.length * size * 1.3);
+        doc.text(lines, M, y + size * 0.9);
+        y += lines.length * size * 1.3;
+      };
+      const heading = (text, size = 13) => { y += 6; room(size * 1.3 + 60); line(text, size, 'bold', 20); y += 3; };
+      const table = (head, rows, opts = {}) => {
+        doc.autoTable({
+          startY: y, margin: { left: M, right: M, top: M, bottom: M + 14 },
+          head: head && [head.map(pdfText)], body: rows.map(r => r.map(pdfText)),
+          styles: { font: 'helvetica', fontSize: 9, cellPadding: 4, overflow: 'linebreak', textColor: 40 },
+          headStyles: { fillColor: [20, 70, 45], textColor: 255 },
+          alternateRowStyles: { fillColor: [244, 248, 245] },
+          rowPageBreak: 'avoid', // a tree's row stays on one page
+          ...opts,
+        });
+        y = doc.lastAutoTable.finalY + 12;
+      };
+      const ranked = s.ranked;
+      const can = ranked.filter(r => r.fit.canGrow);
+      const cannot = ranked.filter(r => r.fit.verdict === 'no'), nodata = ranked.filter(r => r.fit.verdict === 'nodata');
+      const c = s.parts.climate;
+      const coords = `${s.lat.toFixed(4)}, ${s.lon.toFixed(4)}`;
+      const place = pdfName(s.name, coords);
+      // A fixed Latin-digit locale: Marathi, Bengali or Arabic digits would be dropped by the Latin-1 font
+      const when = new Date().toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
+
+      line('Which trees can grow here?', 20, 'bold', 20);
+      line(place, 13, 'bold');
+      line(`Lat ${s.lat.toFixed(4)}, Lon ${s.lon.toFixed(4)}${c.region ? ` · ${c.region.name}` : ''} · Generated ${when} by Forest Eyes`, 9, 'normal', 110);
+      y += 4;
+      line(`${can.length} of the ${ranked.length} trees we check can grow here (${can.filter(r => r.fit.verdict === 'good').length} good fit, ${can.filter(r => r.fit.verdict === 'care').length} with care).`, 10);
+
+      // 1. The place
+      heading('1. Growing conditions at this place');
+      line('What this place offers a tree. Every tree below is checked against these figures.', 9, 'italic', 90);
+      y += 4;
+      table(['Measure', 'This place'], conditionRows(), { columnStyles: { 0: { cellWidth: 140, fontStyle: 'bold' } } });
+      if (Array.isArray(c.monthlyTempC) && c.monthlyTempC.length === 12) {
+        room(80);
+        const rain = c.seasons?.monthlyRainMm;
+        const rainRow = Array.isArray(rain) && rain.length === 12;
+        table(['', ...MONTHS], [
+          ['Mean temp (°C)', ...c.monthlyTempC.map(v => (fin(v) ? String(Math.round(v * 10) / 10) : '-'))],
+          ...(rainRow ? [['Rain (mm)', ...rain.map(v => (fin(v) ? String(v) : '-'))]] : []),
+        ], { styles: { font: 'helvetica', fontSize: 7.5, cellPadding: 3, halign: 'center', textColor: 40 }, columnStyles: { 0: { cellWidth: 75, halign: 'left', fontStyle: 'bold' } } });
+        // The rows come from different datasets than the annual rainfall: say so, or the sums look wrong
+        const tempFrom = `${{ era5: 'ERA5 reanalysis', 'nasa-power': 'NASA POWER', worldclim: 'WorldClim' }[c.provider] || 'modelled data'}, ${c.years}`;
+        line(`Monthly temperatures: ${tempFrom}.${rainRow ? ` Monthly rain, wet season and dry months: ${c.seasons.source}. ` +
+          `The annual rainfall above is ${s.rainfallMm != null ? 'your own figure' : `a different long-term average (${c.rainSource})`}, so the months need not add up to it.` : ''}`, 8, 'italic', 100);
+        y += 4;
+      }
+      const caveat = [c.caveat, s.parts.soil?.fallback].filter(Boolean).join(' ');
+      if (caveat) { line(caveat, 8.5, 'italic', 100); y += 4; }
+
+      // 2. The best trees: a profile each. 3. The rest that can grow: one row each.
+      const names = sp => `${sp.name}${sp.localName && sp.localName !== sp.name ? ` (${sp.localName})` : ''}`;
+      const small = { font: 'helvetica', fontSize: 8, cellPadding: 3, textColor: 40 };
+      const best = can.filter(({ sp, fit }) => fit.verdict === 'good' || s.report[sp.id]?.data);
+      const rest = can.filter(r => !best.includes(r));
+      const SPECIES = Fit.SPECIES_CHECKS; // air is the same for every tree: section 1
+      const noteFor = ({ fit }) => SPECIES.filter(k => fit.checks[k].status !== 'pass')
+        .map(k => `${CHECK_LABEL[k]}: ${fit.checks[k].note}`).join('\n');
+
+      heading(`2. Best trees for this place (${best.length})`);
+      if (!can.length) {
+        line('None of the trees we check suits this place (see section 4). If you know your local annual rainfall, enter it in the planner and download again.', 10);
+      } else if (!best.length) {
+        line(`No tree passes every check here. The ${rest.length} trees in section 3 can grow with care: each row says what to watch.`, 10);
+      } else {
+        // Missing place data (no soil here, soil failed to load…) leaves a check 'unknown': never claim it passed
+        const unchecked = SPECIES.filter(k => best.some(r => r.fit.checks[k].status === 'unknown')).map(k => CHECK_LABEL[k].toLowerCase());
+        line(`${unchecked.length
+          ? `Every tree that passes every check that could be made here. ${unchecked.join(' and ').replace(/^./, x => x.toUpperCase())} could not be checked ("?" below): test on site`
+          : 'Every tree that passes all the checks for water, soil, sunlight and climate'}` +
+          `${best.some(r => r.fit.verdict !== 'good') ? '; plus the trees you opened a report for in the planner' : ''}. ` +
+          'Air quality is the same for every tree (section 1).', 9, 'italic', 90);
+        best.forEach(({ sp, fit }, i) => {
+          heading(`2.${i + 1} ${names(sp)}`, 12);
+          line(`${sp.scientific} · ${sp.family} · ${FIT_TEXT[fit.verdict]}`, 9.5, 'italic', 70);
+          line(`${nativeText(sp, fit, x => x).replace(/^./, x => x.toUpperCase())} (Kew WCVP).`, 9, 'normal', 70);
+          y += 4;
+          const dr = drains(sp);
+          table(['Check', `What it needs (${sp.requirementsFrom === 'ecocrop' ? 'FAO ECOCROP' : 'team-sourced'})`, 'Here'],
+            SPECIES.map(k => [CHECK_LABEL[k], `${fit.checks[k].need}${k === 'soil' && dr ? `; ${dr}` : ''}`, `${PDF_STATUS[fit.checks[k].status]}: ${fit.checks[k].note}`]),
+            { styles: small, columnStyles: { 0: { cellWidth: 58, fontStyle: 'bold' }, 1: { cellWidth: 200 } } });
+          const facts = sourcedRows(sp);
+          if (facts.length) table(['Sourced tree facts', ''], facts, { styles: small, columnStyles: { 0: { cellWidth: 120, fontStyle: 'bold' } } });
+          const rep = s.report[sp.id]?.data;
+          if (rep?.report) {
+            const r = rep.report;
+            room(60);
+            line('Planting report', 10.5, 'bold', 30);
+            if (r.headline) line(r.headline, 9.5, 'bold', 40);
+            if (r.relationship) line(r.relationship, 9);
+            [['Why it suits this place', r.strengths], ['Risks here', r.risks], ['How to plant it', r.planting],
+              ['Care in the first three years', r.care], ['Check on site first', r.check_on_site]].forEach(([title, items]) => {
+              if (!items?.length) return;
+              y += 2;
+              line(title, 9, 'bold', 50);
+              items.forEach(x => line(`- ${x}`, 9));
+            });
+            line(rep.reportSource === 'rules' ? 'Rule-based report (no AI answer).'
+              : rep.reportSource === 'gemma' ? `Written by ${rep.model} from the data above.` : 'Written by the backup AI model from the data above.', 8, 'italic', 110);
+          }
+        });
+        if (best.some(({ sp }) => !s.report[sp.id]?.data)) {
+          y += 4;
+          line('Planting reports (when and how to plant, care in the first years): switch a tree on in the planner to get its report, then download again to include it.', 8.5, 'italic', 100);
+        }
+      }
+
+      if (rest.length) {
+        heading(`3. Can also grow here, with care (${rest.length})`);
+        line('These trees can grow here, but at least one check needs attention or is not recorded for the tree. "Care" = possible with care, "?" = not recorded.', 9, 'italic', 90);
+        y += 4;
+        table(['Tree', 'Native status', 'Ideal conditions', 'What needs care here'],
+          rest.map(r => [`${names(r.sp)}\n${r.sp.scientific}\n${r.sp.family}`, NATIVE_TEXT[r.fit.nativeStatus] || 'unknown', needSummary(r.sp), noteFor(r)]),
+          { styles: small, columnStyles: { 0: { cellWidth: 115, fontStyle: 'bold' }, 1: { cellWidth: 58 }, 2: { cellWidth: 150 } } });
+      }
+
+      // 4. Trees that cannot grow here
+      if (cannot.length || nodata.length) {
+        heading(`4. Not suited here (${cannot.length})${nodata.length ? ` and not enough data (${nodata.length})` : ''}`);
+        if (cannot.length) {
+          table(['Tree', 'Why not'], cannot.map(({ sp, fit }) => [`${names(sp)}\n${sp.scientific}`,
+            fit.failed.map(k => `${CHECK_LABEL[k]}: ${fit.checks[k].note}`).join('\n')]),
+            { styles: small, columnStyles: { 0: { cellWidth: 130, fontStyle: 'bold' } } });
+        }
+        if (nodata.length) line(`Not enough data yet (climate or rainfall needs not recorded): ${nodata.map(({ sp }) => sp.name).join(', ')}.`, 9);
+      }
+
+      // Sources
+      heading('Sources', 11);
+      [`Tree requirements: ${s.speciesSource || 'FAO ECOCROP'} (expert ranges), plus team-sourced values where cited.`,
+        `Native status: ${s.nativeSource || 'Kew WCVP'}${c.region ? `, for the region ${c.region.name}` : ''}.`,
+        `Climate: ${c.source}.`,
+        s.parts.soil?.hasData ? `Soil: ${s.parts.soil.source}.` : null,
+        s.parts.air ? `Air: ${s.parts.air.source}.` : null,
+        'Sunlight needs per light class (very bright ~ 7 h/day ... light shade ~ 1.5 h/day) are our own conversion.',
+      ].filter(Boolean).forEach(t => line(t, 8.5, 'normal', 80));
+      y += 4;
+      line('A screening aid, not a planting prescription: test the soil and ask a local nursery or forest department before planting.', 8.5, 'italic', 100);
+
+      const pages = doc.getNumberOfPages();
+      for (let p = 1; p <= pages; p++) {
+        doc.setPage(p);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(130);
+        doc.text(pdfText(`Forest Eyes · Which trees can grow here? · ${place}`), M, H - 22);
+        doc.text(`Page ${p} of ${pages}`, W - M, H - 22, { align: 'right' });
+      }
+      const slug = place.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'place';
+      doc.save(`trees-for-${slug}-${new Date().toISOString().slice(0, 10)}.pdf`);
+      s.pdfMsg = 'done';
+    } catch (err) {
+      s.pdfMsg = 'failed';
+      console.error('[tree planner pdf]', err);
+    } finally {
+      s.pdfBusy = false;
+      if (state === s && !actions.classList.contains('hidden')) updateActions(true);
+    }
   }
 
   btn.addEventListener('click', open);

@@ -9,7 +9,8 @@
  *
  * Tiles come from v1.12 (2001–2024) through our own server (/tiles/gfw-loss/v1.12/…), because
  * reading pixels needs CORS, which the GFW tile server does not send. v1.12 tiles also contain
- * pixels with year 0 (no loss year); those are skipped. 2D map only, not the 3D Earth.
+ * pixels with year 0 (no loss year); those are skipped. 2D map only, not the 3D Earth: in 3D the
+ * replay pauses and its panel hides, and it carries on when the 2D map is back.
  */
 (function () {
   'use strict';
@@ -88,6 +89,7 @@
     speed: CONFIG.defaultSpeed,
     timer: 0,
     active: false,
+    resume: false, // play again when the 2D map is back on screen
     failed: 0,
   };
   const tiles = new Map(); // tile key → { canvas, buckets, z }
@@ -110,34 +112,91 @@
   function renderAll() { tiles.forEach(renderTile); }
 
   // ---------------------------------------------------------------------
-  // Map layer
+  // Tile decoding in a worker: reading a tile's pixels and sorting them by year took ~40 ms per
+  // tile on the main thread, enough to stall a 2D ↔ 3D switch or a pan. Main-thread fallback below.
   // ---------------------------------------------------------------------
-  const ReplayLayer = L.GridLayer.extend({
-    createTile(coords, done) {
-      const canvas = document.createElement('canvas');
+  const worker = (() => {
+    if (typeof Worker === 'undefined' || typeof OffscreenCanvas === 'undefined' || !location.protocol.startsWith('http')) return null;
+    const source = `
+      const CONFIG = { firstYear: ${CONFIG.firstYear}, lastYear: ${CONFIG.lastYear} };
+      const bucketByYear = ${bucketByYear.toString()};
+      self.onmessage = async ({ data: { id, url } }) => {
+        try {
+          const res = await fetch(url);
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const bmp = await createImageBitmap(await res.blob());
+          const c = new OffscreenCanvas(bmp.width, bmp.height);
+          const ctx = c.getContext('2d', { willReadFrequently: true });
+          ctx.drawImage(bmp, 0, 0);
+          bmp.close();
+          const buckets = bucketByYear(ctx.getImageData(0, 0, c.width, c.height).data);
+          self.postMessage({ id, w: c.width, h: c.height, buckets }, buckets.map(b => b.buffer));
+        } catch (err) {
+          self.postMessage({ id, error: err.message || 'tile failed' });
+        }
+      };`;
+    try {
+      const w = new Worker(URL.createObjectURL(new Blob([source], { type: 'text/javascript' })));
+      const pending = new Map();
+      let next = 0;
+      w.onmessage = ({ data }) => {
+        const job = pending.get(data.id);
+        pending.delete(data.id);
+        if (job) data.error ? job.reject(new Error(data.error)) : job.resolve(data);
+      };
+      return {
+        decode: url => new Promise((resolve, reject) => {
+          const id = ++next;
+          pending.set(id, { resolve, reject });
+          w.postMessage({ id, url: new URL(url, location.href).href });
+        }),
+      };
+    } catch (err) {
+      return null; // e.g. a content policy without blob: workers
+    }
+  })();
+
+  /** Main-thread fallback (no worker): the tile's pixels through a canvas. */
+  function decodeHere(url) {
+    return new Promise((resolve, reject) => {
       const img = new Image();
-      const served = location.protocol.startsWith('http');
-      if (!served) img.crossOrigin = 'anonymous';
+      if (!location.protocol.startsWith('http')) img.crossOrigin = 'anonymous';
       img.onload = () => {
         try {
           const w = img.naturalWidth || 256, h = img.naturalHeight || 256;
           const c = document.createElement('canvas');
           c.width = w; c.height = h;
-          const ctx = c.getContext('2d');
+          const ctx = c.getContext('2d', { willReadFrequently: true });
           ctx.drawImage(img, 0, 0);
-          const buckets = bucketByYear(ctx.getImageData(0, 0, w, h).data);
-          canvas.width = w; canvas.height = h;
-          const t = { canvas, buckets, z: coords.z };
-          tiles.set(this._tileCoordsToKey(coords), t);
-          renderTile(t); // drawn at the year on screen now, even mid-replay
-          done(null, canvas);
+          resolve({ w, h, buckets: bucketByYear(ctx.getImageData(0, 0, w, h).data) });
         } catch (err) {
-          noteFailure();
-          done(err, canvas);
+          reject(err);
         }
       };
-      img.onerror = () => { noteFailure(); done(new Error('tile failed'), canvas); };
-      img.src = L.Util.template(served ? CONFIG.proxyUrl : CONFIG.directUrl, coords);
+      img.onerror = () => reject(new Error('tile failed'));
+      img.src = url;
+    });
+  }
+
+  // ---------------------------------------------------------------------
+  // Map layer
+  // ---------------------------------------------------------------------
+  const ReplayLayer = L.GridLayer.extend({
+    createTile(coords, done) {
+      const canvas = document.createElement('canvas');
+      const url = L.Util.template(location.protocol.startsWith('http') ? CONFIG.proxyUrl : CONFIG.directUrl, coords);
+      const key = this._tileCoordsToKey(coords);
+      (worker ? worker.decode(url) : decodeHere(url)).then(({ w, h, buckets }) => {
+        if (this._tiles[key]?.el !== canvas) return; // unloaded meanwhile (pan / zoom): not repainted every year
+        canvas.width = w; canvas.height = h;
+        const t = { canvas, buckets, z: coords.z };
+        tiles.set(key, t);
+        renderTile(t); // drawn at the year on screen now, even mid-replay
+        done(null, canvas);
+      }, err => {
+        noteFailure();
+        done(err, canvas);
+      });
       return canvas;
     },
   });
@@ -272,6 +331,11 @@
     return enabled && document.getElementById('tree-loss-mode')?.value === 'replay';
   }
 
+  /** 3D Earth on screen, or a 2D ↔ 3D animation playing. */
+  function globeShown() {
+    return !!document.getElementById('toggle-globe')?.checked || !!window.ForestGlobeTransition?.isRunning?.();
+  }
+
   function sync() {
     const visible = isReplayVisible();
     if (visible && !state.active) {
@@ -279,17 +343,32 @@
       state.failed = 0;
       $error.classList.add('hidden');
       map.addLayer(layer);
-      panel.classList.remove('hidden');
       setYear(CONFIG.firstYear);
-      play(); // start straight away; tiles join at the current year as they arrive
+      state.resume = true; // start as soon as the 2D map is on screen; tiles join at the current year
     } else if (!visible && state.active) {
       state.active = false;
       pause();
       map.removeLayer(layer);
       panel.classList.add('hidden');
     }
-    if (visible) updatePanel();
+    // The replay is drawn on the 2D map only. In 3D the panel covered the globe (wheeling over it
+    // could not zoom back to 2D) and kept repainting the hidden map, so it waits out 3D (tiles kept).
+    const onMap = state.active && !globeShown();
+    if (onMap && panel.classList.contains('hidden')) {
+      panel.classList.remove('hidden');
+      if (state.resume) play();
+      state.resume = false;
+    } else if (!onMap && state.active && !panel.classList.contains('hidden')) {
+      state.resume = state.playing;
+      pause();
+      panel.classList.add('hidden');
+    }
+    if (onMap) updatePanel();
   }
+
+  // app.js's toggle listener (registered first) has already started any 2D ↔ 3D animation
+  document.getElementById('toggle-globe')?.addEventListener('change', sync);
+  window.addEventListener('forest:globe-transition-end', sync);
 
   window.ForestReplay = {
     refresh: sync,

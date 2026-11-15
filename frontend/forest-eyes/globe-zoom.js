@@ -165,13 +165,47 @@
       idle(() => {
         try {
           const g = typeof globeScene !== 'undefined' && globeScene;
-          if (g && !inGlobe()) g.renderer.compile(g.scene, g.camera);
+          if (g && !inGlobe()) {
+            const extra = window.ForestGlobeTransition?.warmMeshes?.() || []; // the 2D↔3D sheet's shaders
+            extra.forEach(m => g.scene.add(m));
+            g.renderer.compile(g.scene, g.camera);
+            extra.forEach(m => g.scene.remove(m));
+            finishPrograms(g, extra);
+          }
         } catch (err) {
           console.warn('[globe-zoom] shader warm-up skipped:', err.message);
         }
       });
     });
   }
+  /**
+   * Finish the shaders while nothing is animating. Measured on D3D11 (ANGLE), in the first frames
+   * of a switch: three.js's first-use check waited ~90 ms for the driver to link, then the first
+   * real draw cost ~57 ms (sheet) and ~38 ms (earth) on the GPU, which builds its shaders lazily.
+   * So: wait without blocking until linked, run the checks, then draw once into a 4 × 4 target.
+   */
+  function finishPrograms(g, extra, tries = 50) {
+    const programs = g.renderer.info.programs || [];
+    if (tries > 0 && programs.some(p => p.isReady && !p.isReady())) {
+      setTimeout(() => finishPrograms(g, extra, tries - 1), 100);
+      return;
+    }
+    const target = new THREE.WebGLRenderTarget(4, 4);
+    try {
+      programs.forEach(p => { p.getUniforms(); p.getAttributes(); });
+      if (inGlobe() || busy()) return; // the globe is drawing for real already
+      extra.forEach(m => g.scene.add(m));
+      g.renderer.setRenderTarget(target);
+      g.renderer.render(g.scene, g.camera);
+    } catch (err) {
+      console.warn('[globe-zoom] shader warm-up skipped:', err.message);
+    } finally {
+      g.renderer.setRenderTarget(null);
+      extra.forEach(m => { g.scene.remove(m); m.geometry.dispose(); });
+      target.dispose();
+    }
+  }
+
   if (CONFIG.preloadOnStart) {
     window.addEventListener('load', () => setTimeout(() => {
       if (!inGlobe() && map.getZoom() <= worldZoom() + 1) warmUp();

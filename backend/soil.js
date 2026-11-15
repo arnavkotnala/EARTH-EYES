@@ -8,23 +8,31 @@
  * SoilGrids leaves out water, rock, ice and built-up land, which is exactly where towns
  * and river channels are. lookup() therefore returns the NEAREST cell with soil data
  * (within maxKm) and says how far away it is.
+ *
+ * lookupGlobal() reads data/soil_global.bin (scripts/build-soil-global.py): SoilGrids 2.0's 5 km
+ * means at 0.2° worldwide, the tree planner's offline fallback when the REST API fails.
  */
 'use strict';
 
 const fs = require('fs');
 const path = require('path');
+const zlib = require('zlib');
 
-const FILE = path.join(__dirname, 'data', 'soil_india.bin');
+const FILES = {
+  india: { file: 'soil_india.bin', source: 'ISRIC SoilGrids 2.0, India grid (~2 km, top 30 cm)' },
+  global: { file: 'soil_global.bin', source: 'ISRIC SoilGrids 2.0, 5 km means on a 0.2° grid (~22 km, top 30 cm; offline copy)' },
+};
 const NODATA = -32768;
 // SoilGrids integer units → real units
 const SCALE = { clay: 10, sand: 10, silt: 10, cfvo: 10, bdod: 100, soc: 10, phh2o: 10 };
 
-let grid;
+const grids = {};
 
-function load() {
-  if (grid !== undefined) return grid;
+function load(name = 'india') {
+  if (grids[name] !== undefined) return grids[name];
   try {
-    const b = fs.readFileSync(FILE);
+    let b = fs.readFileSync(path.join(__dirname, 'data', FILES[name].file));
+    if (b[0] === 0x1f && b[1] === 0x8b) b = zlib.gunzipSync(b);
     if (b.toString('latin1', 0, 4) !== 'SOIL') throw new Error('bad header');
     const [W, S, E, N, res] = [0, 1, 2, 3, 4].map(k => b.readDoubleLE(8 + 8 * k));
     const width = b.readUInt32LE(48), height = b.readUInt32LE(52), nProps = b.readUInt32LE(56);
@@ -36,12 +44,12 @@ function load() {
       layers[name] = new Int16Array(b.buffer.slice(b.byteOffset + off, b.byteOffset + off + width * height * 2));
       off += width * height * 2;
     }
-    grid = { W, S, E, N, res, width, height, layers };
+    grids[name] = { W, S, E, N, res, width, height, layers, source: FILES[name].source };
   } catch (err) {
-    if (err.code !== 'ENOENT') console.warn('[soil] could not load soil grid:', err.message);
-    grid = null;
+    if (err.code !== 'ENOENT') console.warn(`[soil] could not load the ${name} soil grid:`, err.message);
+    grids[name] = null;
   }
-  return grid;
+  return grids[name];
 }
 
 function available() { return !!load(); }
@@ -73,8 +81,17 @@ function textureClass(clay, silt, sand) {
  * Returns null outside the India grid or when nothing is found nearby.
  */
 function lookup(lat, lon, maxKm = 5) {
-  const g = load();
-  if (!g || !inside(lat, lon)) return null;
+  return inside(lat, lon) ? lookupIn(load('india'), lat, lon, maxKm) : null;
+}
+
+/** The same from the worldwide 0.2° grid (offline fallback); null if it is missing or nothing is near. */
+function lookupGlobal(lat, lon, maxKm = 30) {
+  const g = load('global');
+  return g && lat >= g.S && lat < g.N ? lookupIn(g, lat, lon, maxKm) : null;
+}
+
+function lookupIn(g, lat, lon, maxKm) {
+  if (!g) return null;
   const col = Math.floor((lon - g.W) / g.res), row = Math.floor((g.N - lat) / g.res);
   const cellKm = g.res * 111.32 * Math.cos(lat * Math.PI / 180);
   const maxRing = Math.ceil(maxKm / Math.min(cellKm, g.res * 111.32));
@@ -104,11 +121,11 @@ function lookup(lat, lon, maxKm = 5) {
         pH: v('phh2o'),
         textureClass: textureClass(clay, silt, sand),
         distanceKm: ring === 0 ? 0 : +bestKm.toFixed(1),
-        source: 'ISRIC SoilGrids 2.0, India grid (~2 km, top 30 cm)',
+        source: g.source,
       };
     }
   }
   return null;
 }
 
-module.exports = { load, available, inside, lookup, textureClass };
+module.exports = { load, available, inside, lookup, lookupGlobal, textureClass };

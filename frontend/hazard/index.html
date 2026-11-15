@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Hazard Lens</title>
   <meta name="description" content="Click anywhere on Earth: Gemma 4 reads the satellite image together with river, flood, terrain, rain and soil data and returns a hazard assessment." />
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛰️</text></svg>" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' fill='%2338bdf8'/></svg>" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
@@ -103,6 +103,9 @@
     .source-tag.rules { color: #94a3b8; background: rgba(148,163,184,.12); }
     .retry { margin-top: 10px; background: transparent; color: var(--accent); border: 1px solid rgba(56,189,248,.5); padding: 6px 10px; }
     .err a { color: var(--accent); } .err code { font-family: var(--mono); color: var(--text); }
+    .card-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .card-top h2 { margin: 0; }
+    .pdf-btn { background: transparent; color: var(--accent); border: 1px solid rgba(56,189,248,.5); padding: 5px 10px; font-size: 12px; white-space: nowrap; }
 
     @media (max-width: 760px) {
       body { flex-direction: column; overflow: auto; }
@@ -115,9 +118,7 @@
   <div id="map" role="application" aria-label="World map: click a place to assess it"></div>
 
   <aside>
-    <h1>🛰️ Hazard Lens</h1>
-    <p class="sub">Click anywhere on Earth. Gemma 4 looks at the satellite image <i>and</i> live river, flood, terrain, rain and soil data, then explains the natural hazards there.</p>
-    <span class="badge-gemma">✦ Powered by Gemma 4</span>
+    <h1>Hazard Lens</h1>
 
     <form id="search">
       <input type="search" id="q" placeholder="Search a place (e.g. Joshimath)" aria-label="Search a place" />
@@ -126,10 +127,10 @@
     <div class="presets" id="presets"></div>
 
     <div class="view-switch" id="view-switch" role="tablist" aria-label="What to show" hidden>
-      <button type="button" role="tab" data-view="reading" aria-selected="true">✦ Reading</button>
-      <button type="button" role="tab" data-view="data" aria-selected="false">📊 Data only</button>
+      <button type="button" role="tab" data-view="reading" aria-selected="true">Reading</button>
+      <button type="button" role="tab" data-view="data" aria-selected="false">Data only</button>
     </div>
-    <div id="out"><div class="hint">👆 Pick a demo place above, search, or click the map.</div></div>
+    <div id="out"><div class="hint">Pick a demo place above, search, or click the map.</div></div>
 
   </aside>
 
@@ -168,10 +169,11 @@
 
     const out = document.getElementById('out');
     const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-    const fmt = (v, unit = '') => (v === null || v === undefined ? '—' : `${typeof v === 'number' ? v.toLocaleString() : esc(v)}${unit}`);
+    // Plain text: the HTML table escapes it, the PDF uses it as is
+    const fmt = (v, unit = '') => (v === null || v === undefined ? '—' : `${typeof v === 'number' ? v.toLocaleString() : v}${unit}`);
     const HAZARD_NAMES = {
-      flood: '🌊 Flood', landslide: '⛰️ Landslide', debris_flow: '🪨 Debris flow', erosion_sediment: '🟫 Erosion & sediment',
-      deforestation: '🌳 Deforestation', drought_low_flow: '☀️ Drought / low flow', glacial: '🧊 Glacial', other: '⚠️ Other',
+      flood: 'Flood', landslide: 'Landslide', debris_flow: 'Debris flow', erosion_sediment: 'Erosion & sediment',
+      deforestation: 'Deforestation', drought_low_flow: 'Drought / low flow', glacial: 'Glacial', other: 'Other',
     };
     const levelText = l => esc(String(l || '').replace('_', ' '));
 
@@ -214,7 +216,7 @@
       ? 'The Hazard Lens needs the project server: in the project folder run <code>npm start</code>, then open <a href="http://localhost:8080/" target="_top">http://localhost:8080</a>.'
       : 'The server did not answer. Wait a moment and try again (a sleeping free server can take about a minute to wake up).';
     if (location.protocol === 'file:') {
-      out.innerHTML = `<div class="card err">⚠️ This page was opened as a file. ${SERVER_HINT}</div>`;
+      out.innerHTML = `<div class="card err">This page was opened as a file. ${SERVER_HINT}</div>`;
     }
 
     let busy = false;
@@ -233,7 +235,7 @@
       lastPlace = { lat, lon, name };
       if (busy) return;
       if (location.protocol === 'file:') {
-        out.innerHTML = `<div class="card err">⚠️ This page was opened as a file. ${SERVER_HINT}</div>`;
+        out.innerHTML = `<div class="card err">This page was opened as a file. ${SERVER_HINT}</div>`;
         return;
       }
       busy = true;
@@ -283,14 +285,12 @@
           .bindTooltip('River downstream (300 km, HydroRIVERS)').addTo(layer);
       }
 
-      const d = r.data || {};
-      const t = d.terrain, rain = d.rainfall, f = d.river_flow_forecast, rv = d.nearest_river;
       let html = '';
 
       const a = r.reading;
       const SOURCE = {
-        gemma: `<span class="source-tag gemma">✦ Gemma 4 reading · ${esc(r.model)} via ${r.provider === 'bedrock' ? 'Amazon Bedrock' : 'Google AI Studio'}</span>`,
-        backup: `<span class="source-tag backup">✦ AI reading</span>`,
+        gemma: `<span class="source-tag gemma">Gemma 4 reading · ${esc(r.model)} via ${r.provider === 'bedrock' ? 'Amazon Bedrock' : 'Google AI Studio'}</span>`,
+        backup: `<span class="source-tag backup">AI reading</span>`,
         rules: `<span class="source-tag rules">Reading from the data</span>`,
       };
       html += `<div class="card reading-card">
@@ -299,7 +299,7 @@
         <span class="lvl ${esc(a.overall_level)}">Overall: ${levelText(a.overall_level)}</span>
         <p class="headline">${esc(a.headline)}</p>
         <div class="meta">${(r.tookMs / 1000).toFixed(0)} s${r.aiError ? ` · AI error: ${esc(r.aiError)}` : ''}</div>
-        ${r.readingSource !== 'gemma' ? '<button type="button" class="retry" id="retry">↻ Retry with Gemma 4</button>' : ''}
+        ${r.readingSource !== 'gemma' ? '<button type="button" class="retry" id="retry">Retry with Gemma 4</button>' : ''}
       </div>`;
       if (a.hazards.length) {
         html += `<div class="card reading-card"><h2>Hazards</h2>${a.hazards.map(h => `
@@ -314,42 +314,116 @@
       if (a.actions.length) html += `<div class="card reading-card"><h2>Suggested next steps</h2><ul>${a.actions.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>`;
       if (a.data_gaps.length) html += `<div class="card reading-card"><h2>Uncertain / check on the ground</h2><ul>${a.data_gaps.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>`;
 
-      html += '<div class="card"><h2>The data behind the reading</h2><table>';
-      if (f) {
-        html += `<tr><td>River flow today</td><td>${fmt(f.today_cms, ' m³/s')}</td></tr>
-          <tr><td>14-day forecast peak</td><td>${fmt(f.forecast_peak_14d_cms, ' m³/s')} (${esc(f.forecast_peak_date)})</td></tr>
-          <tr><td>≈ 2-year flood level</td><td>${fmt(f.approx_2yr_flood_cms, ' m³/s')}</td></tr>
-          <tr><td>Peak ÷ 2-year flood</td><td>${fmt(f.peak_vs_2yr_flood)}</td></tr>`;
-      }
-      if (rv && rv.mean_discharge_cms !== undefined) {
-        html += `<tr><td>Nearest major river</td><td>${fmt(rv.distance_km, ' km away')}</td></tr>
-          <tr><td>Long-term mean flow</td><td>${fmt(rv.mean_discharge_cms, ' m³/s')}</td></tr>
-          <tr><td>Upstream catchment</td><td>${fmt(rv.upstream_area_km2, ' km²')}</td></tr>
-          <tr><td>Distance to sea / sink</td><td>${fmt(rv.distance_to_mouth_km, ' km')}</td></tr>`;
-      }
-      if (t) {
-        html += `<tr><td>Elevation</td><td>${fmt(t.elevation_m, ' m')}</td></tr>
-          <tr><td>Relief within 1 km</td><td>${fmt(t.relief_within_1km_m, ' m')}</td></tr>
-          <tr><td>Steepest slope (~1 km)</td><td>${fmt(t.max_slope_deg, '°')}</td></tr>`;
-      }
-      if (rain) {
-        html += `<tr><td>Rain, past 7 days</td><td>${fmt(rain.past_7_days_mm, ' mm')}</td></tr>
-          <tr><td>Rain, next 3 days</td><td>${fmt(rain.next_3_days_mm, ' mm')}</td></tr>`;
-      }
-      const tl = d.tree_cover_loss;
-      if (tl) {
-        html += `<tr><td>Forest loss 2021-24 (~${tl.area_km2} km²)</td><td>${fmt(tl.total_2021_2024_ha, ' ha')}</td></tr>` +
-          Object.entries(tl.natural_forest_loss_ha_by_year).map(([y, v]) => `<tr><td>&nbsp;&nbsp;${esc(y)}</td><td>${fmt(v, ' ha')}</td></tr>`).join('');
-      }
+      html += `<div class="card"><div class="card-top"><h2>The data behind the reading</h2>
+        <button type="button" class="pdf-btn" id="pdf">Download PDF</button></div><table>`;
+      html += dataRows(r).map(([label, value, sub]) => `<tr><td>${sub ? '&nbsp;&nbsp;' : ''}${esc(label)}</td><td>${esc(value)}</td></tr>`).join('');
       html += '</table>';
-      const sources = [r.image?.source, f?.source, rv?.source, t?.source, rain?.source, d.soil?.source, tl?.source].filter(Boolean);
-      html += `<div class="src">${sources.map(esc).join(' · ')}</div>`;
+      html += `<div class="src">${dataSources(r).map(esc).join(' · ')}</div>`;
       if (r.missing?.length) html += `<div class="src">Not available this time: ${r.missing.map(esc).join(', ')}</div>`;
       html += '</div>';
 
       out.innerHTML = html;
       viewSwitch.hidden = false;
       document.getElementById('retry')?.addEventListener('click', () => lastPlace && assess(lastPlace.lat, lastPlace.lon, lastPlace.name));
+      document.getElementById('pdf').addEventListener('click', e => downloadPdf(r, e.currentTarget));
+    }
+
+    // [label, value, isSubRow] for the data table, shared by the page and the PDF
+    function dataRows(r) {
+      const d = r.data || {};
+      const t = d.terrain, rain = d.rainfall, f = d.river_flow_forecast, rv = d.nearest_river, tl = d.tree_cover_loss;
+      const rows = [];
+      if (f) rows.push(
+        ['River flow today', fmt(f.today_cms, ' m³/s')],
+        ['14-day forecast peak', `${fmt(f.forecast_peak_14d_cms, ' m³/s')} (${f.forecast_peak_date ?? '—'})`],
+        ['≈ 2-year flood level', fmt(f.approx_2yr_flood_cms, ' m³/s')],
+        ['Peak ÷ 2-year flood', fmt(f.peak_vs_2yr_flood)]);
+      if (rv && rv.mean_discharge_cms !== undefined) rows.push(
+        ['Nearest major river', fmt(rv.distance_km, ' km away')],
+        ['Long-term mean flow', fmt(rv.mean_discharge_cms, ' m³/s')],
+        ['Upstream catchment', fmt(rv.upstream_area_km2, ' km²')],
+        ['Distance to sea / sink', fmt(rv.distance_to_mouth_km, ' km')]);
+      if (t) rows.push(
+        ['Elevation', fmt(t.elevation_m, ' m')],
+        ['Relief within 1 km', fmt(t.relief_within_1km_m, ' m')],
+        ['Steepest slope (~1 km)', fmt(t.max_slope_deg, '°')]);
+      if (rain) rows.push(
+        ['Rain, past 7 days', fmt(rain.past_7_days_mm, ' mm')],
+        ['Rain, next 3 days', fmt(rain.next_3_days_mm, ' mm')]);
+      if (tl) {
+        rows.push([`Forest loss 2021-24 (~${tl.area_km2} km²)`, fmt(tl.total_2021_2024_ha, ' ha')]);
+        for (const [y, v] of Object.entries(tl.natural_forest_loss_ha_by_year || {})) rows.push([y, fmt(v, ' ha'), true]);
+      }
+      return rows;
+    }
+    function dataSources(r) {
+      const d = r.data || {};
+      return [r.image?.source, d.river_flow_forecast?.source, d.nearest_river?.source, d.terrain?.source,
+        d.rainfall?.source, d.soil?.source, d.tree_cover_loss?.source].filter(Boolean);
+    }
+
+    // jsPDF is only fetched the first time someone asks for a PDF
+    const loadScript = src => new Promise((ok, fail) => {
+      const s = document.createElement('script');
+      s.src = src; s.onload = ok; s.onerror = () => fail(new Error(`could not load ${src}`));
+      document.head.append(s);
+    });
+    let pdfLib = null;
+    const loadPdfLib = () => (pdfLib ??= loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js')
+      .then(() => loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js'))
+      .catch(err => { pdfLib = null; throw err; }));
+
+    // jsPDF's built-in fonts only cover Latin-1: swap the few symbols we use, drop the rest (emoji, non-Latin scripts)
+    const pdfText = s => String(s ?? '').replace(/≈/g, '~').replace(/÷/g, '/').replace(/[–—]/g, '-')
+      .replace(/[^\x20-\x7e\xa0-\xff]/g, '').trim();
+
+    async function downloadPdf(r, btn) {
+      btn.disabled = true; btn.textContent = 'Preparing…';
+      try {
+        await loadPdfLib();
+        const doc = new window.jspdf.jsPDF({ unit: 'pt', format: 'a4' });
+        const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight(), M = 40;
+        let y = M;
+        const line = (text, size = 10, style = 'normal', color = 40) => {
+          doc.setFont('helvetica', style); doc.setFontSize(size); doc.setTextColor(color);
+          const lines = doc.splitTextToSize(pdfText(text), W - 2 * M);
+          if (y + lines.length * size * 1.3 > H - M) { doc.addPage(); y = M; }
+          doc.text(lines, M, y);
+          y += lines.length * size * 1.3;
+        };
+
+        line('Hazard Lens - site data', 18, 'bold', 20);
+        line(r.place, 12, 'bold');
+        line(`Lat ${r.lat.toFixed(4)}, Lon ${r.lon.toFixed(4)}  ·  Generated ${new Date().toLocaleString()}`, 9, 'normal', 110);
+        if (r.image?.bbox) line(`Area analysed (W, S, E, N): ${r.image.bbox.map(v => v.toFixed(3)).join(', ')}`, 9, 'normal', 110);
+        y += 8;
+
+        doc.autoTable({
+          startY: y, margin: { left: M, right: M },
+          head: [['Measure', 'Value']],
+          body: dataRows(r).map(([label, value, sub]) => [(sub ? '    ' : '') + pdfText(label), pdfText(value)]),
+          styles: { font: 'helvetica', fontSize: 9.5, cellPadding: 4 },
+          headStyles: { fillColor: [17, 26, 46] },
+          columnStyles: { 1: { halign: 'right' } },
+        });
+        y = doc.lastAutoTable.finalY + 16;
+
+        if (r.data?.soil?.summary) { line('Soil', 11, 'bold'); line(r.data.soil.summary, 9); y += 6; }
+        if (r.missing?.length) { line(`Not available this time: ${r.missing.join(', ')}`, 9, 'italic', 110); y += 6; }
+        line('Sources', 11, 'bold');
+        line(dataSources(r).join('; '), 8.5, 'normal', 90);
+        y += 6;
+        line('Screening estimates only - not an engineering or official hazard assessment.', 8.5, 'italic', 110);
+
+        const slug = pdfText(r.place).normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'place';
+        doc.save(`hazard-lens-${slug}-${new Date().toISOString().slice(0, 10)}.pdf`);
+        btn.textContent = 'Download PDF';
+      } catch (err) {
+        btn.textContent = 'PDF failed - retry';
+        console.error('[hazard pdf]', err);
+      } finally {
+        btn.disabled = false;
+      }
     }
   </script>
 </body>

@@ -161,7 +161,7 @@
       let retried = false;
       img.crossOrigin = 'anonymous';
       img.decoding = 'async';
-      img.onload = () => resolve(img);
+      img.onload = () => img.decode().then(() => resolve(img), () => resolve(img)); // not decoded inside toCanvas
       img.onerror = () => {
         // A cached non-CORS copy (from the Leaflet <img>) can fail a CORS request once.
         if (retried) return resolve(null);
@@ -205,11 +205,8 @@
           t.loaded.forEach(({ x, y, img }) => ctx.drawImage(img, x * cell, y * cell, cell, cell));
           coverage = Math.max(coverage, t.loaded.length / t.total);
         });
-        try {
-          ctx.getImageData(0, 0, 1, 1); // throws if anything tainted the canvas
-        } catch (err) {
-          return null;
-        }
+        // No taint check (getImageData stalled ~60 ms reading the canvas back from the GPU): every
+        // tile is loaded with crossOrigin, and a tile failing CORS fires onerror, never onload.
         return coverage >= 0.95 ? canvas : null;
       },
     };
@@ -222,10 +219,47 @@
     return preloaded;
   }
 
-  /** Start loading imagery early (hover / focus on the 3D toggle). */
+  // The mosaic's texture is made once per base map and view size, ahead of time when possible, and
+  // kept for both directions: composing and uploading it in the first frames of a switch stalled
+  // them ~140 ms (2048²), and 3D → 2D used to rebuild it every time.
+  let sheetTex = null; // { key, texture }
+
+  function makeSheetTexture(mosaic) {
+    const canvas = mosaic.toCanvas();
+    if (!canvas || typeof globeScene === 'undefined' || !globeScene) return null;
+    const texture = new THREE.CanvasTexture(canvas); // (an ImageBitmap of it cost more: 20–40 ms to make)
+    texture.colorSpace = THREE.SRGBColorSpace; // shows tile colours exactly like the <img> tiles
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.anisotropy = globeScene.renderer.capabilities.getMaxAnisotropy?.() || 1;
+    globeScene.renderer.initTexture(texture); // upload now, not in an animated frame
+    return texture;
+  }
+
+  function keepSheetTexture(key, texture) {
+    const old = sheetTex?.texture;
+    if (old && old !== texture && !(run && run.texture === old)) old.dispose();
+    sheetTex = { key, texture };
+  }
+
+  /**
+   * Start loading imagery early (hover / focus on the 3D toggle, globe-zoom.js's warm-up), and make
+   * the sheet texture while the browser is idle with the 2D map on screen.
+   */
   function preload() {
     if (run || typeof map === 'undefined' || reducedMotion()) return;
-    try { getMosaic(plan()); } catch (err) { /* preloading is best effort */ }
+    try {
+      const p = plan();
+      if (sheetTex?.key === p.key) return;
+      const mosaic = getMosaic(p);
+      const idle = cb => (window.requestIdleCallback ? requestIdleCallback(cb, { timeout: 3000 }) : setTimeout(cb, 500));
+      mosaic?.done.then(() => idle(() => {
+        if (run || preloaded !== mosaic || sheetTex?.key === p.key || $('toggle-globe')?.checked) return;
+        const texture = makeSheetTexture(mosaic);
+        if (!texture) return;
+        keepSheetTexture(p.key, texture);
+        if (preloaded === mosaic) preloaded = null; // release decoded tile images
+      }));
+    } catch (err) { /* preloading is best effort */ }
   }
 
   // ---------------------------------------------------------------------
@@ -359,42 +393,41 @@
   }
 
   async function loadSheetTexture(r, p) {
+    if (sheetTex?.key === p.key) return { texture: sheetTex.texture, projection: 'mercator', shared: true };
     const mosaic = getMosaic(p);
-    let texture = null;
-    let projection = 'mercator';
     if (mosaic) {
       await Promise.race([mosaic.done, delay(CONFIG.tileWaitMs)]);
       if (run !== r) return null;
-      const canvas = mosaic.toCanvas();
-      if (canvas) {
-        texture = new THREE.CanvasTexture(canvas);
-        texture.colorSpace = THREE.SRGBColorSpace; // shows tile colours exactly like the <img> tiles
+      const texture = makeSheetTexture(mosaic);
+      preloaded = null; // release decoded tile images
+      if (texture) {
+        keepSheetTexture(p.key, texture);
+        return run === r ? { texture, projection: 'mercator', shared: true } : null;
       }
     }
-    preloaded = null; // release decoded tile images
-    if (!texture) {
-      const src = globeScene.earth.material.map;
-      const until = performance.now() + CONFIG.earthWaitMs;
-      while (!textureReady(src) && performance.now() < until) {
-        await delay(100);
-        if (run !== r) return null;
-      }
-      if (!textureReady(src)) return null;
-      texture = new THREE.Texture(src.image); // separate sampler settings, same image
-      texture.colorSpace = src.colorSpace;
-      texture.needsUpdate = true;
-      projection = 'equirect';
+    preloaded = null;
+    // Fallback: the original globe's texture (equirectangular), with its own sampler settings
+    const src = globeScene.earth.material.map;
+    const until = performance.now() + CONFIG.earthWaitMs;
+    while (!textureReady(src) && performance.now() < until) {
+      await delay(100);
+      if (run !== r) return null;
     }
+    if (!textureReady(src)) return null;
+    const texture = new THREE.Texture(src.image); // same image: never closed or kept
+    texture.colorSpace = src.colorSpace;
+    texture.flipY = src.flipY;
+    texture.needsUpdate = true;
     texture.wrapS = THREE.RepeatWrapping;
     texture.anisotropy = globeScene.renderer.capabilities.getMaxAnisotropy?.() || 1;
-    return { texture, projection };
+    return { texture, projection: 'equirect', shared: false };
   }
 
   async function prepare(r) {
     const p = plan();
 
     if (r.dir === 'in') {
-      getMosaic(p); // start loading while the map zooms out
+      if (sheetTex?.key !== p.key) getMosaic(p); // start loading while the map zooms out
       // 1. Zoom-out on the real 2D map.
       if (map.getZoom() > p.target) {
         r.flew = true;
@@ -419,6 +452,7 @@
     if (run !== r) return;
     if (!tex) return finishNow(r);
     r.texture = tex.texture;
+    r.textureShared = tex.shared; // kept for the next switch: not disposed in cleanup
 
     // 3. Sheet aligned with the Leaflet view (current view for 'in', end view for 'out').
     const center = map.getCenter();
@@ -627,7 +661,7 @@
       r.material.dispose();
       r.mesh = null;
     }
-    r.texture?.dispose();
+    if (!r.textureShared) r.texture?.dispose(); // the fallback's image is the earth's own: not closed
     r.texture = null;
     if (globeScene) {
       globeScene.earth.visible = r.saved.earthVisible;
@@ -641,6 +675,7 @@
       r.controls.style.opacity = r.saved.controlsOpacity;
       r.controls.style.pointerEvents = r.saved.controlsPointer;
     }
+    window.dispatchEvent(new Event('forest:globe-transition-end')); // [loss-replay] waits for the 2D map
   }
 
   /** 2D → 3D normal end: the original globe is on screen and the sheet is gone. */
@@ -687,15 +722,40 @@
     else if (!interrupted) startReverse(); // switching back mid-animation stays instant
   }
 
+  /**
+   * Meshes with the sheet's two shader variants (opaque double-sided, transparent front-side),
+   * for globe-zoom.js's idle warm-up to compile and draw once; otherwise each compiles in the first
+   * frames of a switch. The materials are kept: three.js deletes a program once no material uses it.
+   */
+  let warmMaterials = null;
+  function warmMeshes() {
+    if (typeof THREE === 'undefined') return [];
+    if (!warmMaterials) {
+      const tex = new THREE.DataTexture(new Uint8Array(4), 1, 1);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.needsUpdate = true;
+      warmMaterials = [
+        { side: THREE.DoubleSide },
+        { side: THREE.FrontSide, transparent: true, depthWrite: false },
+      ].map(o => new THREE.MeshPhongMaterial({ map: tex, emissiveMap: tex, ...o }));
+    }
+    return warmMaterials.map(m => Object.assign(new THREE.Mesh(new THREE.PlaneGeometry(), m), { frustumCulled: false }));
+  }
+
   // Warm the tile cache while the user is about to switch.
   const toggleLabel = $('toggle-globe')?.closest('label');
   toggleLabel?.addEventListener('pointerenter', preload);
   toggleLabel?.addEventListener('focusin', preload);
+  // A new base map needs a new sheet texture (only once the globe has been warmed up / used)
+  $('toggle-satellite')?.addEventListener('change', () => {
+    if (typeof globeScene !== 'undefined' && globeScene && !$('toggle-globe')?.checked) setTimeout(preload, 0);
+  });
 
   window.ForestGlobeTransition = {
     onToggle,
     cancel,
     preload,
+    warmMeshes,
     isRunning: () => !!run,
     // Exposed for testing
     _test: { wrapVertex, sheetYaw, flatDistance, fitZoom, mosaicZoom, mercY, CONFIG },

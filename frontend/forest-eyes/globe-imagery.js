@@ -7,8 +7,9 @@
  * original earth mesh. Same geometry, material, lights and controls; only the picture
  * changes, so 2D and 3D colours match.
  *
- * The texture is an <img> (blob URL), so heatmap.js can still recolour it for Heatmap
- * mode. If the tiles cannot be loaded, the globe keeps its original NASA texture.
+ * The texture is the reprojected canvas, uploaded ahead while the 2D map is idle; heatmap.js gets
+ * a JPEG copy (texture.userData.src) to recolour for Heatmap mode. If the tiles cannot be loaded,
+ * the globe keeps its original NASA texture.
  */
 (function () {
   'use strict';
@@ -18,8 +19,11 @@
     minCoverage: 0.95,   // share of tiles that must load before the texture is used
     jpegQuality: 0.92,
     fadeMs: 600,         // cross-fade when the picture changes while the globe is on screen
+    tilesPerSlice: 32,   // tiles drawn per frame while building
+    rowsPerSlice: 256,   // reprojected rows per frame while building
   };
   const MAX_MERC_LAT = 85.0511287798;
+  const yieldToFrame = () => new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
 
   const $ = id => document.getElementById(id);
   const entries = new Map(); // key → Promise<{ key, img } | null>
@@ -54,7 +58,7 @@
       const img = new Image();
       let retried = false;
       img.crossOrigin = 'anonymous';
-      img.onload = () => resolve(img);
+      img.onload = () => img.decode().then(() => resolve(img), () => resolve(img)); // decoded off the main thread, not in drawImage
       img.onerror = () => {
         // The 2D map caches these tiles without CORS; a distinct URL fetches a CORS copy.
         if (retried) return resolve(null);
@@ -81,10 +85,16 @@
         console.warn('[globe-imagery] Base-map tiles could not be loaded for the 3D globe; keeping its original texture.');
         return null;
       }
+      // Drawn in slices with yields: in one go it blocked ~70 ms, and it may run while the
+      // 2D map pans or a 2D ↔ 3D switch animates.
       const merc = document.createElement('canvas');
       merc.width = merc.height = W;
       const mctx = merc.getContext('2d');
-      ok.forEach(({ x, y, img }) => mctx.drawImage(img, x * 256, y * 256, 256, 256));
+      for (let i = 0; i < ok.length; i++) {
+        const { x, y, img } = ok[i];
+        mctx.drawImage(img, x * 256, y * 256, 256, 256);
+        if (i % CONFIG.tilesPerSlice === CONFIG.tilesPerSlice - 1) await yieldToFrame();
+      }
 
       const H = W / 2;
       const eq = document.createElement('canvas');
@@ -95,22 +105,15 @@
         const lat = Math.min(Math.max(90 - ((j + 0.5) / H) * 180, -MAX_MERC_LAT), MAX_MERC_LAT) * Math.PI / 180;
         const my = (1 - Math.log(Math.tan(Math.PI / 4 + lat / 2)) / Math.PI) / 2 * W;
         ectx.drawImage(merc, 0, Math.min(Math.floor(my), W - 1), W, 1, 0, j, W, 1);
+        if (j % CONFIG.rowsPerSlice === CONFIG.rowsPerSlice - 1) await yieldToFrame();
       }
       merc.width = merc.height = 0; // free memory
 
-      try {
-        ectx.getImageData(0, 0, 1, 1); // throws if a tile tainted the canvas (WebGL could not use it)
-      } catch (err) {
-        console.warn('[globe-imagery] Base-map tiles are not usable in 3D (CORS); keeping the original texture.');
-        return null;
-      }
-      const blob = await new Promise(res => eq.toBlob(res, 'image/jpeg', CONFIG.jpegQuality));
-      eq.width = eq.height = 0;
-      if (!blob) return null;
-      const img = new Image();
-      img.src = URL.createObjectURL(blob); // kept: heatmap.js may reload it by src
-      await img.decode();
-      return { key, img };
+      // No taint check (getImageData stalled ~90 ms reading the canvas back from the GPU): tiles are
+      // loaded with crossOrigin, and a tile failing CORS fires onerror (→ retry / null), never onload.
+      // The canvas itself is the texture; the JPEG copy heatmap.js needs is made only when asked
+      // for (toBlob also reads the canvas back: ~100 ms).
+      return { key, canvas: eq, src: null, blobJob: null };
     })().catch(err => {
       console.warn('[globe-imagery] Failed to build globe imagery:', err?.message || err);
       return null;
@@ -156,6 +159,42 @@
     requestAnimationFrame(fade);
   }
 
+  /** URL of a JPEG copy, for heatmap.js; undefined until made (heatmap.js asks again shortly). */
+  function blobUrl(entry) {
+    entry.blobJob ??= new Promise(res => entry.canvas.toBlob(res, 'image/jpeg', CONFIG.jpegQuality))
+      .then(blob => { if (blob) entry.src = URL.createObjectURL(blob); });
+    return entry.src || undefined;
+  }
+
+  /** The earth texture for a built entry: one object per entry, so it can be uploaded ahead. */
+  function textureFor(entry) {
+    if (entry.tex) return entry.tex;
+    const tex = new THREE.CanvasTexture(entry.canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = globeScene.renderer.capabilities.getMaxAnisotropy?.() || 1;
+    tex.userData.fwKey = entry.key;
+    // heatmap.js reads userData.src (not enumerable: three.js copies userData as JSON)
+    Object.defineProperty(tex.userData, 'src', { get: () => blobUrl(entry) });
+    entry.tex = tex;
+    return tex;
+  }
+
+  /**
+   * Upload the texture to the GPU while the 2D map is on screen and the browser is idle.
+   * Otherwise the upload happens in the frame the globe first appears: mid-transition.
+   */
+  function uploadAhead(entry) {
+    const idle = cb => (window.requestIdleCallback ? requestIdleCallback(cb, { timeout: 3000 }) : setTimeout(cb, 500));
+    idle(() => {
+      if (typeof globeScene === 'undefined' || !globeScene || $('toggle-globe')?.checked) return;
+      try {
+        globeScene.renderer.initTexture(textureFor(entry));
+      } catch (err) {
+        console.warn('[globe-imagery] texture upload ahead skipped:', err?.message || err);
+      }
+    });
+  }
+
   /** Make the globe show the imagery of the 2D map's current base layer. */
   function apply() {
     if (typeof THREE === 'undefined' || typeof globeScene === 'undefined' || !globeScene) return;
@@ -174,11 +213,7 @@
       if (baseTex?.userData?.fwKey === key) return; // already showing it
       // In Heatmap mode heatmap.js shows its own texture; swap once it restores ours.
       if (earth.material.map !== baseTex) return;
-      const tex = new THREE.Texture(entry.img);
-      tex.colorSpace = THREE.SRGBColorSpace;
-      tex.anisotropy = globeScene.renderer.capabilities.getMaxAnisotropy?.() || 1;
-      tex.needsUpdate = true;
-      tex.userData.fwKey = key;
+      const tex = textureFor(entry);
       const previous = baseTex;
       baseTex = tex;
       setEarthTexture(tex);
@@ -190,7 +225,7 @@
   function preload() {
     if (typeof THREE === 'undefined') return;
     const layer = activeBase();
-    if (layer) build(layer, textureZoom(), `${layer._url}|${textureZoom()}`);
+    if (layer) build(layer, textureZoom(), `${layer._url}|${textureZoom()}`).then(entry => entry && uploadAhead(entry));
   }
 
   // Re-check whenever something that affects the globe's picture changes.

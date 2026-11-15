@@ -1,0 +1,20 @@
+NO PAGE CHANGE Brand: switchRiver(ganga)
+ok             Tab: Water Quality  -> 💧 Water Quality (Sentinel-2) ✕ Turbidity and algae (chlorophyll) of a river or lake, measured from the newest cloud-free Sentinel-2 satellite images. Gemma 4 e
+ok             Water: Analyse water quality here  -> 💧 Water Quality (Sentinel-2) ✕ Turbidity and algae (chlorophyll) of a river or lake, measured from the newest cloud-free Sentinel-2 satellite images. Gemma 4 e
+ok             Water panel: ✕
+ok             Tab: Site Conditions  -> 🧪 Site Conditions: Soil, Earthquakes, Flow ✕ SITE Ganga (Ganges) (mid-river) Snapped to river 0 km away · 1,318 km to the sea 🌊 River flow Long-term mean (Hyd
+ok             Site panel: ✕
+NO PAGE CHANGE Header: Plan Dam Siting (MW)  -> (hidden)
+ok             Dam planner: Scan the selected river
+ok             Atlas: first site row
+ok             Dam planner panel: ✕
+ok             City plan: Find Dam Sites for this City
+ok             City site card: Inspect on satellite
+ok             City site card: Gemma 4 site review  -> Site review from the data Rule-based screening: landslide concern is very high based on the numbers alone. landslide: very high — Not analysed: rule-based readi
+ok             Header: Aqua (Gemma 4)
+ok             Aqua: Send
+               ! HTTP 503 /api/v1/aqua/chat
+               ! console: Failed to load resource: the server responded with a status of 503 (Service Unavailable)
+               Aqua last message: 🌊 Welcome to Aqua Terminal I am Aqua, your Gemma 4-powered River Eyes hydrology assistant. Ask about: Target power capacity to dam sizing (P = η · ρ · g · Q · 
+NO PAGE CHANGE Aqua: ✕
+DONE

@@ -12,6 +12,9 @@ They are not part of the deployed app: Render never installs this folder's packa
 
 | Script | What it checks |
 |---|---|
+| `buttons.js` | Dead-button crawler: clicks every visible control on every page, including ones that appear after earlier clicks, and flags any that do nothing or cause errors (`node buttons.js hazard`, `shell`, `forest`, `river`, or none for all) |
+| `river-flows.js` | River Eyes controls inside tabs, dam results and Aqua, clicked in a real user order |
+| `hazard-lens.js` | Hazard Lens inside the main app's overlay: assess, Retry, Download PDF from the iframe, Esc closes |
 | `survey.js` | Every page loads; lists visible controls and console errors |
 | `forest.js` | Forest Eyes: search, coordinates, radius, Analyze, layers, planner, Treeko, globe |
 | `other.js` | Forest/River tabs, Hazard Lens, River Eyes controls |
@@ -28,4 +31,9 @@ The tree planner's recall check against GBIF is `node backend/scripts/validate-t
 
 `results/` holds the saved output of each run. `shots/` holds the screenshots (about 78 MB, not in git).
 
-Untested: the Retry buttons that only appear after an error.
+`buttons.js`, `river-flows.js` and `hazard-lens.js` (28 Oct 2026, server on Node 22 with `npm start`'s
+memory flag, no `.env`): every control on the four pages responds. The only errors are Aqua's
+HTTP 503 answers, because no `GEMINI_API_KEY` was set; Aqua then shows its "could not answer" fallback.
+Forest Eyes' "Try Again" and the Hazard Lens "Retry" are covered.
+
+Untested: answers from a real Gemma 4 model (no key on the test machine), and phones / browsers other than Chrome.

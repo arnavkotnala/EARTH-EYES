@@ -401,9 +401,9 @@
       if (data.removedSites) {
         bubble.insertAdjacentHTML('beforeend', `<p class="treeko-meta">${data.removedSites} suggested spot(s) outside the analysis area were left out.</p>`);
       }
-      // Credit Gemma 4 when it answered (answers from the backup model carry no label)
-      if (String(data.model || '').startsWith('gemma')) {
-        bubble.insertAdjacentHTML('beforeend', `<p class="treeko-meta">✦ Answered by Gemma 4 (${escapeHtml(data.model)})</p>`);
+      // Model metadata label
+      if (data.model) {
+        bubble.insertAdjacentHTML('beforeend', `<p class="treeko-meta">✦ Answered by AI (${escapeHtml(data.model)})</p>`);
       }
       if (Array.isArray(data.sources) && data.sources.length) {
         bubble.insertAdjacentHTML('beforeend', `<p class="treeko-meta">Sources: ${data.sources.map(escapeHtml).join(' · ')}</p>`);

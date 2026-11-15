@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Earth Intelligence Platform — Forest Eyes ⇄ River Eyes</title>
+  <title>Earth Intelligence Platform — Forest Eyes & River Eyes</title>
   <meta name="description" content="Unified Planetary Intelligence Suite: Forest Eyes (Deforestation & 3D Earth) and River Eyes (Hydrology & Dam Siting) with cinematic fluid-nature transition engine." />
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌍</text></svg>" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' fill='%2310b981'/></svg>" />
 
   <!-- Google Fonts: Inter, Outfit, JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,14 +18,14 @@
     /* Mode switch: one row in the empty centre of both apps' 60 px top bars */
     .mode-switch {
       position: fixed; top: 8px; left: 50%; transform: translateX(-50%); z-index: 10000;
-      height: 44px; display: flex; align-items: center; gap: 8px;
-      padding: 4px; border-radius: 12px;
+      height: 44px; display: flex; align-items: center; gap: 10px;
+      padding: 4px 6px; border-radius: 12px;
       background: rgba(10, 16, 30, 0.85); border: 1px solid rgba(255, 255, 255, 0.10);
       backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
       box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
       font: 600 14px/1 'Inter', system-ui, sans-serif; color: #e2e8f0; white-space: nowrap;
     }
-    .mode-tabs { display: flex; gap: 3px; height: 100%; background: rgba(255, 255, 255, 0.05); border-radius: 9px; padding: 3px; }
+    .mode-tabs { display: flex; gap: 6px; height: 100%; background: rgba(255, 255, 255, 0.05); border-radius: 9px; padding: 3px; }
     .mode-tab {
       appearance: none; border: 0; cursor: pointer; padding: 0 16px; border-radius: 7px;
       background: transparent; color: #94a3b8; font: inherit; display: inline-flex; align-items: center; gap: 7px;
@@ -56,16 +56,16 @@
 <body>
 
   <!-- =========================================================================
-       COMPACT MODE SWITCH: Forest ⇄ River, plus the Hazard Lens (Gemma 4) on/off
+       COMPACT MODE SWITCH: Forest / River, plus the Hazard Lens (Gemma 4) on/off
        ========================================================================= -->
   <div class="mode-switch" id="mode-switch">
     <div class="mode-tabs" role="tablist" aria-label="Platform">
-      <button type="button" class="mode-tab active" id="btn-forest" data-mode="forest" role="tab" aria-selected="true" title="Forest Eyes (T)">🌳 Forest</button>
-      <button type="button" class="mode-tab" id="btn-river" data-mode="river" role="tab" aria-selected="false" title="River Eyes (T)">🌊 River</button>
+      <button type="button" class="mode-tab active" id="btn-forest" data-mode="forest" role="tab" aria-selected="true" title="Forest Eyes (T)">Forest</button>
+      <button type="button" class="mode-tab" id="btn-river" data-mode="river" role="tab" aria-selected="false" title="River Eyes (T)">River</button>
     </div>
-    <label class="lens-check" title="Gemma 4 reads satellite images with flood, river and terrain data (Esc to close)">
+    <label class="lens-check" title="Inspect satellite images with flood, river and terrain data (Esc to close)">
       <input type="checkbox" id="lens-toggle" />
-      <span>✦ Hazard Lens <span class="lens-sub">· Gemma 4</span></span>
+      <span>Hazard Lens</span>
     </label>
   </div>
 
@@ -144,13 +144,13 @@
         isTransitioning = true;
 
         if (targetMode === 'river') {
-          // FOREST ➔ RIVER: screen floods with water
+          // FOREST -> RIVER: screen floods with water
           transitionEngine.floodToRiver(
             () => { applyViewportSwitch('river'); },   // midpoint: screen fully covered
             () => { isTransitioning = false; }          // complete
           );
         } else if (targetMode === 'forest') {
-          // RIVER ➔ FOREST: canopy covers the screen
+          // RIVER -> FOREST: canopy covers the screen
           transitionEngine.treesAbsorbToForest(
             () => { applyViewportSwitch('forest'); },
             () => { isTransitioning = false; }

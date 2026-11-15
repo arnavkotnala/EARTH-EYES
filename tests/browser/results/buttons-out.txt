@@ -1,0 +1,87 @@
+
+===== /
+  ok         button#btn-forest.mode-tab "🌳 Forest"  dom
+  ok         button#btn-river.mode-tab "🌊 River"  dom
+  ok         input#lens-toggle. "✦ Hazard Lens"  dom, 58 req, visual
+
+===== /forest-eyes/
+  ok         a#-.leaflet-control-zoom-in "+"  dom, 72 req
+  ok         a#-.leaflet-control-zoom-out "−"  dom, 30 req
+  ok         button#search-btn.btn-icon "🔍"  dom, 91 req
+  ok         button#coords-search-btn.btn-icon "🔍"  dom, 94 req
+  ok         button#plant-btn.btn-plant "🌱 Which Trees Can Grow Here?"  dom, 6 req
+  ok         select#tree-loss-mode. "Dot form Colour form Heatmap Year replay (200"  dom | covered by tp-columns
+  ok         input#-.tp-switch "Tamarind Imli Tamarindus indica Good fit Intr"  dom, 1 req
+  ok         input#-.tp-switch "Indian gooseberry Amla Phyllanthus emblica Go"  dom, 1 req
+  ok         input#-.tp-switch "Axlewood Anogeissus latifolia With care Nativ"  dom, 1 req
+  ok         button#-.tp-close "×"  dom
+  ok         div#-.leaflet-marker-icon ""  dom
+  ok         button#analyze-btn.btn-primary "🛰️ Analyze Deforestation"  dom, 4 req
+  ok         button#treeko-btn.treeko-pill "TREEKO"  dom, 1 req
+  ok         button#-.treeko-chat-key "🔑"  dom
+  ok         button#-.treeko-key-save "Save"  dom
+  ok         button#-.treeko-chip "What is the soil profile?"  dom
+  ok         button#-.treeko-chip "Type of trees to be planted"  dom
+  ok         button#-.treeko-chip "Where can we plant trees?"  dom
+  ok         button#-.treeko-send "➤"  dom
+  ok         button#-.treeko-chat-close "×"  dom
+  link ok    a#-. "Leaflet"  https://leafletjs.com/
+  link ok    a#-. "Get a key"  https://aistudio.google.com/apikey
+
+===== /river-eyes/
+  ok         div#-.brand-section "🌊 River Eyes v2.0 GLOBAL HYDROLOGY & DAM SIT"  dom, 2 req
+  ok         button#-.btn "⚡ Plan Dam Siting (MW)"  dom, visual
+  ok         button#-.btn "✨ Aqua (Gemma 4)"  dom, visual
+  ok         select#world-river-select.select-dropdown "Ganga (Ganges) — Himalayan Basin Yamuna River"  dom, 37 req, visual
+  ok         button#plan-city-go.btn "🔍"  dom, 2 req, visual
+  ok         input#-. "Best overall"  dom, visual
+  ok         input#-. "Nearest to the city"  dom, visual
+  ok         button#-.btn "Find Dam Sites for this City"  dom, 24 req, visual
+  ok         button#-.btn "Scan the Yamuna River"  dom, 57 req, visual
+  ok         button#pick-river-btn.btn "🖱️ Pick a river on the map"  dom, visual
+  ok         button#pick-river-btn.btn "✖ Cancel picking (Esc)"  dom, visual
+  ok         div#nav-overview.nav-item "🗺️ Overview & Telemetry"  dom, visual
+  ok         div#nav-dam-planner.nav-item "⚡ Energy Dam Siting NEW"  dom, visual
+  ok         div#nav-geotech.nav-item "🧪 Site Conditions"  dom, visual
+  ok         div#nav-water.nav-item "💧 Water Quality (Sentinel-2)"  dom, visual
+  ok         button#-.aqua-pill "🌊 Aqua Gemma 4 Hydrology Assistant ✨"  dom, visual
+  ok         div#-.leaflet-marker-icon "" [8]  dom, visual
+  ok         div#-.leaflet-marker-icon "" [10]  dom, visual
+  ok         a#-.leaflet-control-zoom-in "+"  dom, 21 req, visual
+  CLICK FAILED (page.click: Timeout 5000ms exceeded.) div#-.leaflet-marker-icon ""  dom
+  ok         a#-.leaflet-control-zoom-out "−"  dom, 26 req, visual
+  ok         input#-.leaflet-control-layers-selector "Dark"  dom, visual
+  ok         input#-.leaflet-control-layers-selector "Satellite"  dom, 25 req, visual
+  ok         input#-.leaflet-control-layers-selector "Major rivers ≥ 100,000 km²"  dom, 1 req, visual
+  ok         input#-.leaflet-control-layers-selector "Large rivers 20,000–100,000 km²"  dom, visual
+  ok         input#-.leaflet-control-layers-selector "Medium rivers 2,000–20,000 km²"  dom, 1 req, visual
+  ok         input#-.leaflet-control-layers-selector "Small rivers & streams < 2,000 km² · India fr"  dom, 1 req, visual
+  ERRORS     div#-.quick-pill "⚡ 800 MW Dam Plan"  dom, 1 req, visual | HTTP 503 /api/v1/aqua/chat | console: Failed to load resource: the server responded with a status of 503 (Service Unavailable)
+  ERRORS     div#-.quick-pill "🧪 Site Investigation"  dom, 1 req, visual | HTTP 503 /api/v1/aqua/chat | console: Failed to load resource: the server responded with a status of 503 (Service Unavailable)
+  ERRORS     div#-.quick-pill "💧 Water Quality WQI"  dom, 1 req, visual | HTTP 503 /api/v1/aqua/chat | console: Failed to load resource: the server responded with a status of 503 (Service Unavailable)
+  ERRORS     div#-.quick-pill "🚨 Seismic Risk"  dom, 1 req, visual | HTTP 503 /api/v1/aqua/chat | console: Failed to load resource: the server responded with a status of 503 (Service Unavailable)
+  ERRORS     button#-.btn "Send"  dom, 1 req, visual | HTTP 503 /api/v1/aqua/chat | console: Failed to load resource: the server responded with a status of 503 (Service Unavailable)
+  ok         a#-.leaflet-popup-close-button "×"  dom, visual
+  ok         button#-.btn "✕" [4]  dom, visual
+  ok         button#water-run.btn "Analyse water quality here"  dom, 2 req, visual
+  ok         button#-.btn "✕" [2]  dom, visual
+
+===== /hazard/
+  ok         a#-.leaflet-control-zoom-in "+"  dom, 40 req, visual
+  ok         a#-.leaflet-control-zoom-out "−"  dom, visual
+  ok         button#-. "Go"  dom, 594 req, visual
+  ok         button#-. "Joshimath, Chamoli (India)"  dom, 159 req, visual
+  ok         button#-. "Rhine at Cologne (Germany)"  dom, 633 req, visual
+  ok         button#-. "Amazon near Manaus (Brazil)"  dom, 751 req, visual
+  ok         button#-. "Derna, Libya (2023 dam failure)"  dom, 753 req, visual
+  ok         button#-. "Sindh, Indus (Pakistan)"  dom, 652 req, visual
+  ok         button#-. "✦ Reading"  dom, visual
+  ok         button#-. "📊 Data only"  dom, visual
+  ok         button#pdf.pdf-btn "⬇ Download PDF"  dom, 2 req, download: hazard-lens-sindh-indus-pakistan-2026-10-28.pdf
+  link ok    a#-. "Leaflet"  https://leafletjs.com/
+
+===== SUMMARY
+  /: 3 controls tried, 0 need a look, 0 repeats of an already-tried control skipped
+  /forest-eyes/: 22 controls tried, 0 need a look, 79 repeats of an already-tried control skipped
+  /river-eyes/: 36 controls tried, 6 need a look, 7 repeats of an already-tried control skipped
+  /hazard/: 12 controls tried, 0 need a look, 0 repeats of an already-tried control skipped

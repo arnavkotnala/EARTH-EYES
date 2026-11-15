@@ -249,9 +249,14 @@
       sp.altitudeM ? `${sp.altitudeM[0]}–${sp.altitudeM[1]} m altitude` : null].filter(Boolean);
     const need = needs.join('; ') || 'not recorded for this tree';
     const elev = Number.isFinite(c.terrainElevationM) ? `; ${c.terrainElevationM} m altitude` : '';
-    const have = `${r1(c.coldestMonthC)}–${r1(c.warmestMonthC)} °C monthly means; winter lows ~${r1(c.typicalMinC)} °C (record ${r1(c.absMinC)} °C)${elev}`;
+    // Monthly normals (offline fallback) have no daily record, so no typical or record winter low
+    const frostKnown = Number.isFinite(c.typicalMinC);
+    const lows = frostKnown ? `winter lows ~${r1(c.typicalMinC)} °C (record ${r1(c.absMinC)} °C)`
+      : `coldest month's average night ~${r1(c.coldestMonthMinC)} °C (no record of the coldest nights)`;
+    const have = `${r1(c.coldestMonthC)}–${r1(c.warmestMonthC)} °C monthly means; ${lows}${elev}`;
     if (!t) return { ...noRequirement('temperature'), have };
     if (t.status === 'fail') return check('fail', have, need, t.fail);
+    if (!frostKnown) return climateWithoutFrost(sp, c, t, have, need);
     const tooCold = sp.killC != null && c.typicalMinC < sp.killC;
     const nativeExcuse = nativeHere === 'native' && c.typicalMinC >= sp.killC - NATIVE_FROST_SLACK_C;
     if (tooCold && !nativeExcuse) {
@@ -268,6 +273,29 @@
     else if (sp.killC != null && c.typicalMinC < sp.killC + 2) notes.push('winter lows come close to its frost-kill temperature, so protect young plants on cold nights');
     else if (sp.frostLimitC != null && c.typicalMinC < sp.frostLimitC) notes.push(`winters here (~${r1(c.typicalMinC)} °C) are colder than the lowest temperature recorded for it (${sp.frostLimitC} °C)`);
     else if (sp.killC == null && sp.frostLimitC == null && c.typicalMinC < 0) notes.push(`its frost tolerance is not recorded and nights here fall to ~${r1(c.typicalMinC)} °C, so check that local trees of this kind survive winter`);
+    if (sp.altitudeM && Number.isFinite(c.terrainElevationM)) {
+      const [lo, hi] = sp.altitudeM, z = c.terrainElevationM;
+      if (z < lo - ALTITUDE_SLACK_M || z > hi + ALTITUDE_SLACK_M) notes.push(`${z} m is ${z < lo ? 'below' : 'above'} its recorded altitude (${lo}–${hi} m)`);
+    }
+    if (!notes.length) return check('pass', have, need, `${t.pass.replace(/^./, x => x.toUpperCase())}.`);
+    return check('marginal', have, need, `${notes.join('; ').replace(/^./, x => x.toUpperCase())}.`);
+  }
+
+  /**
+   * Climate check from monthly normals only. The coldest nights are colder than the coldest month's
+   * AVERAGE night, so that average settles a frost failure but can never clear a frost-sensitive tree.
+   */
+  function climateWithoutFrost(sp, c, t, have, need) {
+    const night = c.coldestMonthMinC;
+    const limit = sp.killC ?? sp.frostLimitC;
+    if (sp.killC != null && Number.isFinite(night) && night < sp.killC) {
+      return check('fail', have, need, `Even the average night of the coldest month here (~${r1(night)} °C) is colder than the ${sp.killC} °C frost that kills it.`);
+    }
+    const notes = [];
+    if (t.status === 'marginal') notes.push(t.marginal);
+    if (limit != null || (Number.isFinite(night) && night < 0)) {
+      notes.push(`frost could not be checked: only monthly averages are available here (the coldest month's average night is ~${r1(night)} °C, and the coldest nights are lower)`);
+    }
     if (sp.altitudeM && Number.isFinite(c.terrainElevationM)) {
       const [lo, hi] = sp.altitudeM, z = c.terrainElevationM;
       if (z < lo - ALTITUDE_SLACK_M || z > hi + ALTITUDE_SLACK_M) notes.push(`${z} m is ${z < lo ? 'below' : 'above'} its recorded altitude (${lo}–${hi} m)`);

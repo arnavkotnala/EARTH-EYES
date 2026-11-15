@@ -46,31 +46,43 @@ forestCore?.setGenerator(gemma.generate);
 // Keeps the chat assistants on topic and code-free (shared with the browser, like treeko-brain.js)
 const guard = require('../frontend/forest-eyes/ai-guard.js');
 
-// Chat rate limits: the model quota is shared by everyone using the site. Per visitor, plus a
+// Rate limits: the model quota is shared by everyone using the site. Per visitor, plus a
 // site-wide cap, because a visitor can fake x-forwarded-for to look like many visitors.
-const CHAT_LIMIT = {
+function rateLimiter({ max, siteMax, windowMs = 10 * 60 * 1000 }) {
+  const ipHits = new Map(); // ip -> request times in the window
+  let siteHits = [];
+  return function allowed(req) {
+    // cf-connecting-ip if a Cloudflare proxy set it (not verified for Render), else x-forwarded-for's
+    // first entry. Both can be faked when no proxy overwrites them: the site-wide cap is the backstop.
+    const ip = String(req.headers['cf-connecting-ip'] || '').trim() ||
+      String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || '?';
+    const now = Date.now();
+    siteHits = siteHits.filter(t => now - t < windowMs);
+    const hits = (ipHits.get(ip) || []).filter(t => now - t < windowMs);
+    if (hits.length >= max || siteHits.length >= siteMax) { ipHits.set(ip, hits); return false; }
+    hits.push(now);
+    siteHits.push(now);
+    ipHits.set(ip, hits);
+    if (ipHits.size > 5000) for (const [k, v] of ipHits) if (now - v[v.length - 1] >= windowMs) ipHits.delete(k);
+    return true;
+  };
+}
+// Treeko and Aqua chat
+const chatAllowed = rateLimiter({
   max: Number(process.env.CHAT_MAX_PER_WINDOW) || 20,
   siteMax: Number(process.env.CHAT_MAX_SITE_PER_WINDOW) || 300,
-  windowMs: 10 * 60 * 1000,
-};
-const chatHits = new Map(); // ip -> request times in the window
-let siteHits = [];
-function chatAllowed(req) {
-  // cf-connecting-ip if a Cloudflare proxy set it (not verified for Render), else x-forwarded-for's
-  // first entry. Both can be faked when no proxy overwrites them: the site-wide cap is the backstop.
-  const ip = String(req.headers['cf-connecting-ip'] || '').trim() ||
-    String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || '?';
-  const now = Date.now();
-  siteHits = siteHits.filter(t => now - t < CHAT_LIMIT.windowMs);
-  const hits = (chatHits.get(ip) || []).filter(t => now - t < CHAT_LIMIT.windowMs);
-  if (hits.length >= CHAT_LIMIT.max || siteHits.length >= CHAT_LIMIT.siteMax) { chatHits.set(ip, hits); return false; }
-  hits.push(now);
-  siteHits.push(now);
-  chatHits.set(ip, hits);
-  if (chatHits.size > 5000) for (const [k, v] of chatHits) if (now - v[v.length - 1] >= CHAT_LIMIT.windowMs) chatHits.delete(k);
-  return true;
-}
+});
+// One-shot AI readings: Hazard Lens, water quality, tree reports (one per tree switched on)
+const aiReadAllowed = rateLimiter({
+  max: Number(process.env.AI_MAX_PER_WINDOW) || 40,
+  siteMax: Number(process.env.AI_MAX_SITE_PER_WINDOW) || 400,
+});
 const TOO_MANY = { error: 'Too many questions in a short time. Please wait a few minutes and ask again.' };
+const TOO_MANY_AI = { error: 'Too many requests in a short time. Please wait a few minutes and try again.' };
+function tooMany(res, body) {
+  res.writeHead(429, { 'content-type': 'application/json', 'retry-after': '120' });
+  return res.end(JSON.stringify(body));
+}
 const hazard = require('./hazard.js');
 const dam = require('./dam.js');
 const site = require('./site.js');
@@ -80,7 +92,7 @@ const waterSnap = require('./water-snap.js');
 const rivers = require('./rivers.js');
 const traceCache = new Map();
 const networkCache = new Map();
-const tileCache = new Map(); // GFW loss tiles forwarded for the 3D globe
+const tileCache = new Map(); // GFW loss and tree cover tiles forwarded for the 3D globe
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -252,6 +264,7 @@ const server = http.createServer(async (req, res) => {
 
   // Water quality from Sentinel-2 (/api/v1/water-quality) — { lat, lon, name }
   if (url.pathname === '/api/v1/water-quality' && req.method === 'POST') {
+    if (!aiReadAllowed(req)) return tooMany(res, TOO_MANY_AI);
     try {
       const result = await water.assess(JSON.parse(await readBody(req, 4 * 1024) || '{}'));
       res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
@@ -298,6 +311,7 @@ const server = http.createServer(async (req, res) => {
 
   // Tree planner: report on one tree at one place (/api/v1/trees/report) — { lat, lon, name, speciesId, rainfallMm? }
   if (url.pathname === '/api/v1/trees/report' && req.method === 'POST') {
+    if (!aiReadAllowed(req)) return tooMany(res, TOO_MANY_AI);
     try {
       const result = await trees.report(JSON.parse(await readBody(req, 4 * 1024) || '{}'));
       res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
@@ -356,16 +370,21 @@ const server = http.createServer(async (req, res) => {
   // their pixels, which the GFW tile server does not always allow cross-site (CORS). Cached in memory.
   // /tiles/gfw-loss/v1.12/z/x/y.png serves the 2001–2024 release (used by the year replay); its tiles
   // are 512 px and also carry pixels with year 0, so the other modes stay on v1.11 (2001–2023).
-  const tileMatch = /^\/tiles\/gfw-loss\/(?:(v1\.12)\/)?(\d{1,2})\/(\d{1,5})\/(\d{1,5})\.png$/.exec(url.pathname);
+  // /tiles/gfw-cover/z/x/y.png serves Tree Cover 2000 (same tiles as the 2D Tree Cover layer) for the globe.
+  const tileMatch = /^\/tiles\/gfw-(loss|cover)\/(?:(v1\.12)\/)?(\d{1,2})\/(\d{1,5})\/(\d{1,5})\.png$/.exec(url.pathname);
   if (tileMatch && req.method === 'GET') {
-    const version = tileMatch[1] || 'v1.11';
-    const [z, x, y] = tileMatch.slice(2).map(Number);
-    if (z > 12 || x >= 2 ** z || y >= 2 ** z) { res.writeHead(404); return res.end(); }
-    const key = `${version}/${z}/${x}/${y}`;
+    const layer = tileMatch[1];
+    const version = tileMatch[2] || 'v1.11';
+    const [z, x, y] = tileMatch.slice(3).map(Number);
+    if (z > 12 || x >= 2 ** z || y >= 2 ** z || (layer === 'cover' && tileMatch[2])) { res.writeHead(404); return res.end(); }
+    const key = layer === 'cover' ? `cover/${z}/${x}/${y}` : `${version}/${z}/${x}/${y}`;
+    const upstream = layer === 'cover'
+      ? `https://tiles.globalforestwatch.org/umd_tree_cover_density_2000/v1.8/tcd_30/${z}/${x}/${y}.png`
+      : `https://tiles.globalforestwatch.org/umd_tree_cover_loss/${version}/tcd_30/${z}/${x}/${y}.png`;
     let tile = tileCache.get(key);
     if (!tile) {
       try {
-        const up = await fetch(`https://tiles.globalforestwatch.org/umd_tree_cover_loss/${version}/tcd_30/${z}/${x}/${y}.png`, { signal: AbortSignal.timeout(15000) });
+        const up = await fetch(upstream, { signal: AbortSignal.timeout(15000) });
         tile = up.ok ? { status: 200, body: Buffer.from(await up.arrayBuffer()) } : { status: up.status, body: null };
       } catch {
         tile = { status: 502, body: null };
@@ -485,6 +504,7 @@ const server = http.createServer(async (req, res) => {
 
   // Hazard Lens (/api/v1/hazard) — satellite image + global data → Gemma 4 hazard reading
   if (url.pathname === '/api/v1/hazard' && req.method === 'POST') {
+    if (!aiReadAllowed(req)) return tooMany(res, TOO_MANY_AI);
     try {
       const result = await hazard.assess(JSON.parse(await readBody(req, 4 * 1024) || '{}'));
       res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });

@@ -241,7 +241,7 @@
     let text;
     let usedModel = model;
     if (opts.generate) {
-      // Server path: shared Gemma 4 client (retries + model fallback), see ../gemma.js
+      // Server path: shared AI client (retries + model fallback), see ../gemma.js
       ({ text, model: usedModel } = await opts.generate({
         // JSON asked for in the prompt only: with the schema enforced Gemma loops (see gemma.js)
         system: systemPrompt(ctx, soil), contents, schema: RESPONSE_SCHEMA, timeoutMs: opts.geminiTimeoutMs, jsonMode: 'prompt',

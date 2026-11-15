@@ -21,6 +21,8 @@
   const CONFIG = {
     lossZoom: 3,          // GFW tile zoom used for the globe (3 → 2048×1024 texture)
     radius: 1.0015,       // overlay sphere, just above the earth
+    coverRadius: 1.001,   // Tree Cover sphere: between the earth and the loss overlay
+    coverOpacity: 0.7,    // same as the 2D Tree Cover layer
     dotOpacity: 0.85,     // same as the 2D Tree Loss layer
     colourGlobal: true,   // Colour form also colours worldwide loss on the globe
     colourBlur: 2,        // px neighbourhood used to grade loss density
@@ -181,27 +183,19 @@
     });
   }
 
-  function ensureLoss() {
-    if (loss && loss.state !== 'failed') return;
-    loss = { state: 'loading' };
-    const current = loss;
-    const z = CONFIG.lossZoom;
+  const pause = () => new Promise(r => setTimeout(r, 0)); // let the browser draw a frame
+
+  /** Loads a whole zoom level of tiles; resolves to an equirectangular canvas, or null if none loaded. */
+  function loadEquirect(tileUrl, z) {
     const n = Math.pow(2, z);
     const W = 256 * n;
     const jobs = [];
     for (let x = 0; x < n; x++) {
-      for (let y = 0; y < n; y++) jobs.push(loadTile(lossTileUrl(x, y, z)).then(img => ({ x, y, img })));
+      for (let y = 0; y < n; y++) jobs.push(loadTile(tileUrl(x, y, z)).then(img => ({ x, y, img })));
     }
-    const pause = () => new Promise(r => setTimeout(r, 0)); // let the browser draw a frame
-    Promise.all(jobs).then(async tiles => {
-      if (loss !== current) return;
+    return Promise.all(jobs).then(tiles => {
       const ok = tiles.filter(t => t.img);
-      if (!ok.length) {
-        console.warn('[globe-layers] Tree loss tiles could not be loaded for the 3D globe (network or CORS). ' +
-          'Dot/Colour form show only the analysis zones on the globe.');
-        current.state = 'failed';
-        return refresh();
-      }
+      if (!ok.length) return null;
       // Mercator mosaic → equirectangular texture (the globe's own projection).
       const merc = document.createElement('canvas');
       merc.width = merc.height = W;
@@ -217,6 +211,23 @@
         const my = (1 - Math.log(Math.tan(Math.PI / 4 + lat / 2)) / Math.PI) / 2 * W;
         ectx.drawImage(merc, 0, Math.min(Math.floor(my), W - 1), W, 1, 0, j, W, 1);
       }
+      return { eq, ectx, W, H };
+    });
+  }
+
+  function ensureLoss() {
+    if (loss && loss.state !== 'failed') return;
+    loss = { state: 'loading' };
+    const current = loss;
+    loadEquirect(lossTileUrl, CONFIG.lossZoom).then(async mosaic => {
+      if (loss !== current) return;
+      if (!mosaic) {
+        console.warn('[globe-layers] Tree loss tiles could not be loaded for the 3D globe (network or CORS). ' +
+          'Dot/Colour form show only the analysis zones on the globe.');
+        current.state = 'failed';
+        return refresh();
+      }
+      const { eq, ectx, W, H } = mosaic;
       try {
         await pause();
         const data = ectx.getImageData(0, 0, W, H).data;
@@ -244,6 +255,42 @@
     return loss.colourTex || null;
   }
 
+  // ---------------------------------------------------------------------
+  // Tree Cover 2000 imagery (the 2D Tree Cover layer, under the loss)
+  // ---------------------------------------------------------------------
+  let cover = null; // { state: 'loading' | 'ready' | 'failed', tex }
+
+  function coverTileUrl(x, y, z) {
+    if (location.protocol.startsWith('http')) return `/tiles/gfw-cover/${z}/${x}/${y}.png`; // backend: same-origin copy
+    const tpl = (typeof treeCoverLayer !== 'undefined' && treeCoverLayer._url) ||
+      'https://tiles.globalforestwatch.org/umd_tree_cover_density_2000/v1.8/tcd_30/{z}/{x}/{y}.png';
+    return L.Util.template(tpl, { x, y, z, s: '', r: '' });
+  }
+
+  function ensureCover() {
+    if (cover && cover.state !== 'failed') return;
+    cover = { state: 'loading' };
+    const current = cover;
+    loadEquirect(coverTileUrl, CONFIG.lossZoom).then(async mosaic => {
+      if (cover !== current) return;
+      if (!mosaic) {
+        console.warn('[globe-layers] Tree cover tiles could not be loaded for the 3D globe (network or CORS).');
+        current.state = 'failed';
+        return refresh();
+      }
+      const { eq, ectx, W, H } = mosaic;
+      try {
+        await pause();
+        current.tex = makeDataTexture(bleedAndFlip(ectx.getImageData(0, 0, W, H).data, W, H), W, H);
+      } catch (err) {
+        console.warn('[globe-layers] Could not read tree cover tiles; showing them unprocessed:', err.message);
+        current.tex = makeTexture(eq);
+      }
+      current.state = 'ready';
+      refresh();
+    });
+  }
+
   function makeDataTexture(data, w, h) {
     const tex = new THREE.DataTexture(data, w, h, THREE.RGBAFormat);
     tex.colorSpace = THREE.SRGBColorSpace;
@@ -266,11 +313,19 @@
   // Meshes (children of the original earth)
   // ---------------------------------------------------------------------
   let overlay = null;
+  let coverOverlay = null;
   let zones = null;
   let zonesKey = '';
 
   function ensureMeshes() {
     if (overlay || typeof THREE === 'undefined' || !globeScene) return;
+    coverOverlay = new THREE.Mesh(
+      new THREE.SphereGeometry(CONFIG.coverRadius, 128, 64),
+      new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, opacity: CONFIG.coverOpacity })
+    );
+    coverOverlay.renderOrder = 1; // drawn before (under) the loss overlay
+    coverOverlay.visible = false;
+    globeScene.earth.add(coverOverlay);
     overlay = new THREE.Mesh(
       new THREE.SphereGeometry(CONFIG.radius, 128, 64), // same UV layout as the earth
       new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false })
@@ -375,10 +430,21 @@
     overlay.material.opacity = wantDots ? CONFIG.dotOpacity : 1;
     overlay.visible = !!tex;
     buildZones(wantColour);
+
+    // Tree Cover: hidden in Heatmap form, as heatmap.js hides it on the 2D map
+    const wantCover = (document.getElementById('toggle-tree-cover')?.checked ?? true) && !(enabled && mode === 'heatmap');
+    if (wantCover) ensureCover();
+    const coverTex = wantCover && cover?.state === 'ready' ? cover.tex : null;
+    if (coverOverlay.material.map !== coverTex) {
+      coverOverlay.material.map = coverTex;
+      coverOverlay.material.needsUpdate = true;
+    }
+    coverOverlay.visible = !!coverTex;
   }
 
   // The globe is created by app.js's toggle listener, which runs before this one.
   document.getElementById('toggle-globe')?.addEventListener('change', refresh);
+  document.getElementById('toggle-tree-cover')?.addEventListener('change', refresh);
 
   window.ForestGlobeLayers = {
     refresh,

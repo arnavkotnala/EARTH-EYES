@@ -394,7 +394,7 @@
     if (baseTexture) return applyBaseTexture();
     if (baseTextureLoading || !globeScene) return;
     const original = globeOriginals?.map || globeScene.earth.material.map;
-    const src = original?.image?.src;
+    const src = original?.userData?.src || original?.image?.src; // globe-imagery.js textures are canvases: src in userData
     if (!src) {
       setTimeout(() => { if (monoActive) buildBaseTexture(); }, 500);
       return;

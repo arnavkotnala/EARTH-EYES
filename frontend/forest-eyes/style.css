@@ -79,7 +79,11 @@ html, body {
 
 /* The map runs under the side panels: keep the zoom buttons and credits in the visible part,
    with the zoom buttons above the layer bar */
-.leaflet-bottom.leaflet-right { right: var(--panel-width); }
+.leaflet-bottom.leaflet-right, .leaflet-top.leaflet-right { right: var(--panel-width); }
+.leaflet-top.leaflet-right { top: var(--header-h); }
+/* Credits sit top-right (the layer bar covers the bottom) and wrap inside the map, never under a panel:
+   Esri and UMD/Hansen require them to stay visible */
+.leaflet-top.leaflet-right .leaflet-control-attribution { max-width: max(160px, calc(100vw - 2 * var(--panel-width))); }
 .leaflet-bottom.leaflet-right .leaflet-control-zoom { margin-bottom: 96px; margin-right: 14px; }
 
 /* Custom leaflet popup */
@@ -1329,8 +1333,6 @@ html, body {
   line-height: 1.45;
 }
 
-#globe-controls:not(.hidden) ~ .fw-replay-panel { bottom: 136px; }
-
 @media (max-width: 900px) {
   .fw-replay-panel { left: 16px; transform: none; }
 }
@@ -1949,6 +1951,11 @@ html, body {
 .tp-rain:focus { outline: none; border-color: var(--accent-green); }
 .tp-link { align-self: flex-start; padding: 0; border: none; background: none; color: var(--accent-teal); font: inherit; font-size: 11px; text-decoration: underline; cursor: pointer; }
 .tp-note { margin: 8px 0 14px; font-size: 11.5px; color: var(--text-muted); line-height: 1.5; }
+/* PDF bar: between the header and the scrolling body, so a re-render never replaces the button */
+.tp-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 10px 18px; border-bottom: 1px solid var(--glass-border); }
+.tp-pdf { padding: 6px 12px; font-size: 12px; color: var(--accent-teal); border-color: rgba(38, 198, 218, 0.45); white-space: nowrap; }
+.tp-pdf:disabled, .tp-pdf[aria-disabled="true"] { opacity: 0.55; cursor: wait; }
+.tp-pdf-note { font-size: 11.5px; color: var(--text-muted); }
 
 /* Two columns: trees on the left, report on the right */
 .tp-columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 16px; align-items: start; }
@@ -2028,9 +2035,14 @@ html, body {
 .tp-cannot li { line-height: 1.5; }
 
 /* Report */
+/* Sticky beside the list, so it scrolls on its own: taller than .tp-body it would stay pinned
+   with its end cut off until the list was scrolled to the bottom. 140px ≈ overlay and body padding + header. */
 .tp-report {
   position: sticky;
   top: 0;
+  max-height: calc(100vh - 140px);
+  max-height: calc(100dvh - 140px);
+  overflow-y: auto;
   padding: 14px 16px;
   background: rgba(0, 0, 0, 0.22);
   border: 1px solid var(--glass-border);
@@ -2059,9 +2071,9 @@ html, body {
 @media (max-width: 760px) {
   .tp-overlay { padding: 8px; }
   .tp-modal { max-height: calc(100dvh - 16px); }
-  .tp-head, .tp-body { padding-left: 16px; padding-right: 16px; }
+  .tp-head, .tp-body, .tp-actions { padding-left: 16px; padding-right: 16px; }
   .tp-columns { grid-template-columns: 1fr; }
-  .tp-report { position: static; }
+  .tp-report { position: static; max-height: none; overflow: visible; }
   .tp-table tbody th { white-space: normal; }
 }
 
